@@ -7,7 +7,7 @@ front_end/build/
 # Node.js specific ignores (only for front_end)
 front_end/node_modules/
 front_end/.npm/
-back_end/node_modules/
+backend/node_modules
 back_end/.npm/
 
 # Environment variables

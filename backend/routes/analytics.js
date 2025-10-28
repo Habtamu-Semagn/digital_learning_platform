@@ -1,12 +1,12 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   trackEvent,
   getOverview,
   getInstitutionAnalytics,
   getUserAnalytics,
   exportAnalytics,
-} = require("../controllers/analyticsController");
-const { protect } = require("../controllers/authController");
+} from "../controllers/analyticsController.js";
+import { protect } from "../controllers/authController.js";
 
 const router = express.Router();
 
@@ -17,4 +17,4 @@ router.get("/institution/:institutionId", protect, getInstitutionAnalytics);
 router.get("/user/:userId", protect, getUserAnalytics);
 router.get("/export", protect, exportAnalytics);
 
-module.exports = router;
+export default router;

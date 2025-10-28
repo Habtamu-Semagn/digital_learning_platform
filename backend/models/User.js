@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const validator = require("validator");
-const bcrypt = require("bcryptjs");
+import mongoose from "mongoose";
+import validator from "validator";
+import bcrypt from "bcryptjs";
 const { Schema } = mongoose;
 const userSchema = new Schema(
   {
@@ -145,4 +145,5 @@ userSchema.virtual("initials").get(function () {
 userSchema.virtual("isStaff").get(function () {
   return ["instructor", "admin", "superadmin"].includes(this.role);
 });
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+export default User;

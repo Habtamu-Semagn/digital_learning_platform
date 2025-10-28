@@ -1,10 +1,10 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   createInstitution,
   getInstitutionAnalytics,
   getInstitutions,
-} = require("../controllers/institutionController");
-const { protect } = require("../controllers/authController");
+} from "../controllers/institutionController.js";
+import { protect } from "../controllers/authController.js";
 
 const router = express.Router();
 

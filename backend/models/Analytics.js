@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const analyticsSchema = new mongoose.Schema(
   {
@@ -280,4 +280,5 @@ analyticsSchema.statics.getExportData = function (
     .sort({ createdAt: -1 });
 };
 
-module.exports = mongoose.model("Analytics", analyticsSchema);
+const Analytics = mongoose.model("Analytics", analyticsSchema);
+export default Analytics;

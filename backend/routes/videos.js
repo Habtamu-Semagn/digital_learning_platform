@@ -1,6 +1,6 @@
 // routes/videos.js
-const express = require("express");
-const {
+import express from "express";
+import {
   uploadVideo,
   getVideos,
   getVideo,
@@ -8,9 +8,9 @@ const {
   updateVideoStatus,
   deleteVideo,
   addRating,
-} = require("../controllers/videoController");
-const { protect } = require("../controllers/authController");
-const { uploadVideo: videoUpload } = require("../middleware/upload"); // Renamed import to avoid conflict
+} from "../controllers/videoController.js";
+import { protect } from "../controllers/authController.js";
+// import {uploadVideo: videoUpload } from "../middleware/upload";
 
 const router = express.Router();
 
@@ -19,10 +19,10 @@ router.get("/", getVideos); // Get all videos
 router.get("/:id", getVideo); // Get single video
 
 // 🔐 Protected routes
-router.post("/upload", protect, videoUpload.single("video"), uploadVideo);
+// router.post("/upload", protect, videoUpload.single("video"), uploadVideo);
 router.post("/:id/watch", protect, trackWatchTime); // Track video watch time
 router.post("/:id/rate", protect, addRating); // Add rating to video
 router.patch("/:id/status", protect, updateVideoStatus); // Update video status
 router.delete("/:id", protect, deleteVideo); // Delete video
 
-module.exports = router;
+export default router;

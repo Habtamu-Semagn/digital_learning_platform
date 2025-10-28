@@ -1,15 +1,16 @@
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-require("dotenv").config();
-
+import User from "../models/User.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { config } from "dotenv";
+config();
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 };
 
-exports.signUp = async (req, res) => {
+export const signUp = async (req, res) => {
+  console.log("request body: ", req.body);
   try {
     // validate required fields
     const {
@@ -77,7 +78,7 @@ exports.signUp = async (req, res) => {
 
     const token = signToken(newUser._id);
     newUser.password = undefined;
-
+    console.log({ data: newUser }, "successfull");
     res.status(201).json({
       status: "success",
       token,
@@ -91,7 +92,7 @@ exports.signUp = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -135,7 +136,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   try {
     // getting token and check of it's there
     let token;

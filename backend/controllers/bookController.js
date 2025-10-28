@@ -1,6 +1,6 @@
-const Book = require("../models/Book");
-const path = require("path");
-const fs = require("fs");
+import Book from "../models/Book.js";
+import path from "path";
+import fs from "fs";
 
 const uploadBook = async (req, res) => {
   try {
@@ -113,7 +113,7 @@ const deleteBook = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   uploadBook,
   getBooks,
   getBook,

@@ -1,4 +1,4 @@
-const Analytics = require("../models/Analytics");
+import Analytics from "../models/Analytics.js";
 
 const trackEvent = async (req, res) => {
   try {
@@ -270,7 +270,7 @@ const convertToCSV = (data) => {
   return [headers, ...rows].map((row) => row.join(",")).join("\n");
 };
 
-module.exports = {
+export {
   trackEvent,
   getOverview,
   getInstitutionAnalytics,

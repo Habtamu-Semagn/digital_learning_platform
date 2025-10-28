@@ -1,13 +1,14 @@
 // routes/users.js
-const express = require("express");
-const { protect } = require("../controllers/authController");
-const {
+import express from "express";
+import { protect } from "../controllers/authController.js";
+import {
   getUsers,
+  // getUserbaseUrl,
   getUser,
   updateUser,
   deleteUser,
   updateUserRole,
-} = require("../controllers/userController");
+} from "../controllers/userController.js";
 
 const router = express.Router();
 
@@ -18,4 +19,4 @@ router.patch("/:id", protect, updateUser);
 router.delete("/:id", protect, deleteUser);
 router.patch("/:id/role", protect, updateUserRole);
 
-module.exports = router;
+export default router;
