@@ -1,8 +1,8 @@
-const Institution = require("../models/Institution");
-const User = require("../models/User");
-const Book = require("../models/Book");
-const Video = require("../models/Video");
-const Analytics = require("../models/Analytics");
+import Institution from "../models/Institution.js";
+import User from "../models/User.js";
+import Book from "../models/Book.js";
+import Video from "../models/Video.js";
+import Analytics from "../models/Analytics.js";
 
 const getInstitutions = async (req, res) => {
   try {

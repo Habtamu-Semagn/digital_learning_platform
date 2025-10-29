@@ -8,7 +8,7 @@ import authRoutes from "./routes/auth.js";
 import bookRoutes from "./routes/books.js";
 import videoRoutes from "./routes/videos.js";
 import analyticsRoutes from "./routes/analytics.js";
-// import institutionRoutes from "./routes/institutions.js";
+import institutionRoutes from "./routes/institutions.js";
 import userRoutes from "./routes/users.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,7 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/analytics", analyticsRoutes);
-// app.use("/api/institutions", institutionRoutes);
+app.use("/api/institutions", institutionRoutes);
 app.use("/api/users", userRoutes);
 
 // Health check route

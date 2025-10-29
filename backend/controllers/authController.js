@@ -1,6 +1,6 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import { config } from "dotenv";
 config();
 const signToken = (id) => {
@@ -49,7 +49,14 @@ export const signUp = async (req, res) => {
     const allowedRoles = ["user", "instructor"];
     const userRole = allowedRoles.includes(role) ? role : "user";
     const userIsActive = isActive !== undefined ? isActive : true;
-    const userInstitution = institution || "unknown";
+
+    if (institution && !mongoose.Types.ObjectId.isValid(institution)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Invalid institution ID",
+      });
+    }
+    const userInstitution = institution || undefined;
 
     // check if email already exists
     const existingUser = await User.findOne({ email });
@@ -60,14 +67,11 @@ export const signUp = async (req, res) => {
       });
     }
 
-    // hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     // create new user
     const newUser = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       role: userRole,
       institution: userInstitution,
       avatar,
@@ -139,6 +143,7 @@ export const login = async (req, res) => {
 export const protect = async (req, res, next) => {
   try {
     // getting token and check of it's there
+    console.log("request user: ", req.user)
     let token;
     if (
       req.headers.authorization &&
@@ -182,4 +187,30 @@ export const protect = async (req, res, next) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    // Check if user exists and has a role
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        status: "fail",
+        message: "Not authorized to access this route",
+      });
+    }
+
+    // Check if user's role is included in the allowed roles
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        status: "fail",
+        message: `User role ${req.user.role
+          } is not authorized to access this route. Required roles: ${roles.join(
+            ", "
+          )}`,
+      });
+    }
+
+    // User is authorized, proceed to next middleware
+    next();
+  };
 };

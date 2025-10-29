@@ -1,5 +1,5 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   getInstitutions,
   getInstitution,
   createInstitution,
@@ -7,8 +7,8 @@ const {
   deleteInstitution,
   getInstitutionAnalytics,
   getInstitutionUsers,
-} = require("../controllers/institutionController");
-const { protect, authorize } = require("../controllers/authController");
+} from "../controllers/institutionController.js";
+import { protect, authorize } from "../controllers/authController.js";
 
 const router = express.Router();
 
@@ -28,4 +28,4 @@ router.delete("/:id", authorize("admin"), deleteInstitution); // Delete institut
 router.get("/:id/analytics", getInstitutionAnalytics); // Get institution analytics
 router.get("/:id/users", getInstitutionUsers); // Get institution users
 
-module.exports = router;
+export default router;

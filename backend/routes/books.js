@@ -7,7 +7,7 @@ import {
   deleteBook,
 } from "../controllers/bookController.js";
 import { protect } from "../controllers/authController.js"; // Use your auth controller
-// const upload = require("../middleware/upload");
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.get("/search", searchBooks);
 router.get("/:id", getBook);
 
 // 🔐 Protected routes
-// router.post("/upload", protect, upload.single("file"), uploadBook);
+router.post("/upload", protect, upload.single("file"), uploadBook);
 router.delete("/:id", protect, deleteBook);
 
 export default router;

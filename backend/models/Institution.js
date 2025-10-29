@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const institutionSchema = new mongoose.Schema(
   {
@@ -48,5 +48,5 @@ const institutionSchema = new mongoose.Schema(
   }
 );
 
-const Institution = mongoose.model(institutionSchema);
+const Institution = mongoose.model("Institution", institutionSchema);
 export default Institution;

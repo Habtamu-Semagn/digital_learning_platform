@@ -31,7 +31,7 @@ const getBooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const books = (await Book.find().populate("uploadedBy", "name email"))
+    const books = await Book.find().populate("uploadedBy", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

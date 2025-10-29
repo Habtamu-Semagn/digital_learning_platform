@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import Video from "../models/Video.js";
 import Book from "../models/Book.js";
@@ -13,7 +14,7 @@ const getUsers = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const total = User.countDocuments();
+    const total = await User.countDocuments();
 
     res.json({
       users,
@@ -43,11 +44,12 @@ const getUser = async (req, res) => {
       });
     }
     // Get user's content statistics
-    const [bookCount, videoCount, userActivity] = Promise.all([
+    const [bookCount, videoCount, userActivity] = await Promise.all([
       Book.countDocuments({ uploadedBy: userId }),
       Video.countDocuments({ uploadedBy: userId }),
-      (await Analytics.find({ userId }).populate("contentId", "title"))
-        .toSorted({ createdAt: -1 })
+      Analytics.find({ userId })
+        .populate("contentId", "title")
+        .sort({ createdAt: -1 })
         .limit(5)
         .select("action contentType contentId createdAt"),
     ]);
@@ -57,7 +59,7 @@ const getUser = async (req, res) => {
       statistics: {
         booksUploaded: bookCount,
         videosUploaded: videoCount,
-        recentActivity,
+        recentActivity: userActivity,
       },
     };
     res.json({ status: "success", data: { user: userWithStats } });
@@ -68,19 +70,27 @@ const getUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
+    console.log("req ", req);
     const userId = req.params.id;
     const { name, institution, avatar, isActive } = req.body;
+
+    if (institution && !mongoose.Types.ObjectId.isValid(institution)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Invalid institution ID",
+      });
+    }
     const user = await User.findById(req.params.id);
 
     if (!user) {
-      res.status(404).json({
+      return res.status(404).json({
         status: "fail",
         message: "User not found",
       });
     }
 
-    if (!req.user.role !== "admin" && req.user.id !== userId) {
-      res.status(403).json({
+    if (req.user.role !== "admin" && req.user.id !== userId) {
+      return res.status(403).json({
         status: "fail",
         message: "Not authorized to update this user",
       });
@@ -93,11 +103,11 @@ const updateUser = async (req, res) => {
     if (institution) updateData.institution = institution;
 
     if (req.user.role === "admin") {
-      if (isActive !== "undefined") updateData.isActive = isActive;
+      if (isActive !== undefined) updateData.isActive = isActive;
     }
 
     if (Object.keys(updateData).length === 0) {
-      res.status(400).json({
+      return res.status(400).json({
         status: "fail",
         message: "No valid fields to update",
       });
@@ -107,6 +117,13 @@ const updateUser = async (req, res) => {
       new: true,
       runValidators: true,
     }).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found",
+      });
+    }
 
     res.json({
       status: "success",
@@ -133,14 +150,19 @@ const deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    if (req.user.role !== "admin" && req.user.id !== userId) {
+    if (req.user.role !== "admin") {
+      if (req.user.id === userId) {
+        return res.status(403).json({
+          status: 'fail',
+          message: "You cannot delete your own account"
+        })
+      }
       return res.status(403).json({
         status: "fail",
-        message: "You cannot delete your own account",
+        message: "You are not authorized to delete this user",
       });
     }
 
-    // check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -188,6 +210,13 @@ const updateUserRole = async (req, res) => {
   try {
     const userId = req.params.id;
     const { role } = req.body;
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 'fail',
+        message: "You are not authorized to update this user"
+      })
+    }
 
     // Validate role
     const validRoles = ["admin", "user", "instructor", "writer"];
