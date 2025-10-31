@@ -1,6 +1,10 @@
 import Book from "../models/Book.js";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const uploadBook = async (req, res) => {
   try {
@@ -8,12 +12,14 @@ const uploadBook = async (req, res) => {
     if (!req.file) {
       res.status(400).message("Please upload a file");
     }
+
     const book = await Book.create({
       title,
       description,
       author,
       language,
       tags: tags ? tags.split(",") : [],
+      filename: req.file.filename,
       fileUrl: `uploads/books/${req.file.filename}`,
       originalName: req.file.originalname,
       fileSize: req.file.size,
@@ -31,7 +37,8 @@ const getBooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const books = await Book.find().populate("uploadedBy", "name email")
+    const books = await Book.find()
+      .populate("uploadedBy", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -70,8 +77,9 @@ const getBook = async (req, res) => {
 const searchBooks = async (req, res) => {
   try {
     const { q, page = 1, limit = 10 } = req.query;
+    console.log("request query: ", req.query);
     const books = await Book.find(
-      { $text: { $search: q } },
+      { $text: { $search: `${q}` } },
       { score: { $meta: "textScore" } }
     )
       .sort({ score: { $meta: "textScore" } })
@@ -101,22 +109,22 @@ const deleteBook = async (req, res) => {
         .json({ message: "Not authorised to delete this book" });
     }
 
-    const filePath = path.join(__dirname, "..", "public", book.fileUrl);
+    const filePath = path.join(
+      __dirname,
+      "..",
+      "uploads",
+      "books",
+      book.filename
+    );
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
     await Book.findByIdAndDelete(req.params.id);
-    res.json({ message: "Book removed" });
+    res.json({ message: "Book removed successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-export {
-  uploadBook,
-  getBooks,
-  getBook,
-  searchBooks,
-  deleteBook,
-};
+export { uploadBook, getBooks, getBook, searchBooks, deleteBook };

@@ -19,20 +19,13 @@ const bookSchema = new Schema(
       maxlength: 12,
     },
     tags: [String],
+    filename: [String],
     fileUrl: {
       type: String,
       required: true,
     },
     fileSize: {
       type: Number,
-      required: true,
-    },
-    filename: {
-      type: String,
-      required: true,
-    },
-    fileType: {
-      type: String,
       required: true,
     },
     thumbnail: {
@@ -66,5 +59,7 @@ const bookSchema = new Schema(
     timestamps: true,
   }
 );
+
+bookSchema.index({ title: "text", description: "text", author: "text" });
 const Book = mongoose.model("Book", bookSchema);
 export default Book;

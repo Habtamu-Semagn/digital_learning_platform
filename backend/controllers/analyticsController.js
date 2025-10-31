@@ -1,5 +1,9 @@
 import Analytics from "../models/Analytics.js";
-
+import Video from "../models/Video.js";
+import Book from "../models/Book.js";
+import Institution from "../models/Institution.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
 const trackEvent = async (req, res) => {
   try {
     const {
@@ -39,9 +43,6 @@ const trackEvent = async (req, res) => {
   }
 };
 
-// @desc    Get platform overview analytics
-// @route   GET /api/analytics/overview
-// @access  Private (Admin)
 const getOverview = async (req, res) => {
   try {
     const { startDate, endDate = new Date() } = req.query;
@@ -103,9 +104,6 @@ const getOverview = async (req, res) => {
   }
 };
 
-// @desc    Get institution analytics
-// @route   GET /api/analytics/institution/:institutionId
-// @access  Private (Admin/Institution Admin)
 const getInstitutionAnalytics = async (req, res) => {
   try {
     const { institutionId } = req.params;
@@ -150,13 +148,13 @@ const getInstitutionAnalytics = async (req, res) => {
   }
 };
 
-// @desc    Get user engagement analytics
-// @route   GET /api/analytics/user/:userId
-// @access  Private (Admin/User themselves)
 const getUserAnalytics = async (req, res) => {
   try {
     const { userId } = req.params;
     const { startDate, endDate = new Date() } = req.query;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid User Id" });
+    }
 
     // Authorization check
     if (req.user.role !== "admin" && req.user.id !== userId) {
@@ -193,9 +191,6 @@ const getUserAnalytics = async (req, res) => {
   }
 };
 
-// @desc    Export analytics data
-// @route   GET /api/analytics/export
-// @access  Private (Admin)
 const exportAnalytics = async (req, res) => {
   try {
     const { format = "csv", startDate, endDate = new Date() } = req.query;

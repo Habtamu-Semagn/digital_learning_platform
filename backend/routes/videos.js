@@ -8,18 +8,28 @@ import {
   updateVideoStatus,
   deleteVideo,
   addRating,
+  searchVideos,
 } from "../controllers/videoController.js";
 import { protect } from "../controllers/authController.js";
-// import {uploadVideo: videoUpload } from "../middleware/upload";
+import { videoUpload } from "../middleware/uploadVideo.js";
+import { ValidateVideoFields } from "../middleware/validateVideoField.js";
+import { searchBooks } from "../controllers/bookController.js";
 
 const router = express.Router();
 
-// 🔓 Public routes
+// Public routes
 router.get("/", getVideos); // Get all videos
+router.get("/search", searchVideos);
 router.get("/:id", getVideo); // Get single video
 
-// 🔐 Protected routes
-// router.post("/upload", protect, videoUpload.single("video"), uploadVideo);
+// Protected routes
+router.post(
+  "/upload",
+  protect,
+  videoUpload.single("video"),
+  ValidateVideoFields,
+  uploadVideo
+);
 router.post("/:id/watch", protect, trackWatchTime); // Track video watch time
 router.post("/:id/rate", protect, addRating); // Add rating to video
 router.patch("/:id/status", protect, updateVideoStatus); // Update video status

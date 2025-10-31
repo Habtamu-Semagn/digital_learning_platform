@@ -2,7 +2,9 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
+
 // Route imports
 import authRoutes from "./routes/auth.js";
 import bookRoutes from "./routes/books.js";
@@ -15,6 +17,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 
+const uploadsDir = path.join(__dirname, "uploads");
+const uploadsBooksDir = path.join(uploadsDir, "books");
+const uploadsVideosDir = path.join(uploadsDir, "videos");
+
+[uploadsDir, uploadsBooksDir, uploadsVideosDir].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created uploads directory: ${dir}`);
+  }
+});
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -22,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (uploads)
 app.use("/public", express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(uploadsDir));
 
 // Routes
 app.use((req, res, next) => {

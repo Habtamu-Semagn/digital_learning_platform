@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Institution from "../models/Institution.js";
 import User from "../models/User.js";
 import Book from "../models/Book.js";
@@ -235,7 +236,7 @@ const getInstitutionAnalytics = async (req, res) => {
         Video.countDocuments({ institution: institutionId }),
         Analytics.aggregate([
           {
-            $match: { institution: mongoose.Types.ObjectId(institutionId) },
+            $match: { institution: new mongoose.Types.ObjectId(institutionId) },
           },
           {
             $group: {

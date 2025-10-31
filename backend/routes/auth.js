@@ -4,11 +4,11 @@ import { signUp, login, protect } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// 🔓 Public routes
+// Public routes
 router.post("/signup", signUp);
 router.post("/login", login);
 
-// 🔐 Protected routes (example - add your protected routes here)
+// Protected routes (example - add your protected routes here)
 router.get("/me", protect, (req, res) => {
   res.status(200).json({
     status: "success",

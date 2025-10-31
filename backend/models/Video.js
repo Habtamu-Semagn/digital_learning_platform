@@ -27,18 +27,17 @@ const videoSchema = new Schema(
 
     thumbnail: {
       type: String, // URL to thumbnail image
-      required: [true, "Thumbnail URL is required"],
     },
 
     duration: {
       type: Number, // Duration in seconds
-      required: [true, "Video duration is required"],
       min: [1, "Duration must be at least 1 second"],
     },
 
     // Metadata
     language: {
       type: String,
+      required: [true, "Language is required"],
       default: "en",
       maxlength: 10,
     },
@@ -50,16 +49,26 @@ const videoSchema = new Schema(
       },
     ],
 
-    // category: {
-    //   type: String,
-    //   trim: true,
-    //   maxlength: 50,
-    // },
+    category: {
+      type: String,
+      required: [true, "Category is required"],
+      trim: true,
+      maxlength: 50,
+    },
 
     // Video Specifications
     format: {
       type: String,
-      enum: ["mp4", "webm", "mov", "avi"],
+      enum: [
+        "mp4",
+        "webm",
+        "mov",
+        "avi",
+        "quicktime",
+        "mkv",
+        "x-vlc",
+        "octet-stream",
+      ],
       default: "mp4",
     },
 
@@ -199,5 +208,12 @@ const videoSchema = new Schema(
   }
 );
 
+videoSchema.index({
+  title: "text",
+  description: "text",
+  tags: "text",
+  category: "text",
+  videoUrl: "text",
+});
 const Video = mongoose.model("Video", videoSchema);
 export default Video;

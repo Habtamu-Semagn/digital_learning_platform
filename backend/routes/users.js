@@ -12,7 +12,7 @@ import {
 
 const router = express.Router();
 
-// 🔐 All user routes are protected
+// All user routes are protected
 router.get("/", protect, getUsers);
 router.get("/:id", protect, getUser);
 router.patch("/:id", protect, updateUser);

@@ -1,5 +1,13 @@
+import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import Video from "../models/Video.js";
 import { addOrUpdateRating } from "../services/videoService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const uploadVideo = async (req, res) => {
   try {
     const {
@@ -7,7 +15,11 @@ const uploadVideo = async (req, res) => {
       description,
       language,
       tags,
+      category,
       isPublic = true,
+      duration: durationFromBody = 30,
+      thumbnail:
+      thumbnailFromBody = "https://example.com/default-thumbnail.jpg",
       accessLevel = "public",
       institution = undefined,
     } = req.body;
@@ -16,28 +28,55 @@ const uploadVideo = async (req, res) => {
       return res.status(400).json({ message: "Please select a video file" });
     }
 
-    const videoData = await uploadToCloudflare(req.file);
-
+    // const videoData = await uploadToCloudflare(req.file);
+    const videoUrl = `uploads/videos/${req.file.filename}`;
     const video = await Video.create({
       title,
       description,
       language,
+      category,
       tags: tags ? tags.split(",") : [],
       //   videoId: videoData.uid,
-      videoUrl: videoData.playbackUrl,
-      thumbnail: videoData.thumbnail,
-      duration: videoData.duration,
+      // videoUrl: videoData.playbackUrl,
+      // thumbnail: videoData.thumbnail,
+      // duration: videoData.duration,
+      // uploadedBy: req.user.id,
+      videoUrl: videoUrl,
+      thumbnail: thumbnailFromBody,
+      duration: durationFromBody,
       uploadedBy: req.user.id,
       institution,
-      isPublic: isPublic === "true", // Convert string to boolean
+      isPublic, // Convert string to boolean
       accessLevel,
-      status: videoData.ready ? "ready" : "processing",
-      processingProgress: videoData.ready ? 100 : 0,
-      publishedAt: videoData.ready ? new Date() : null,
-      streamData: videoData, // Store complete Cloudflare response
+      // status: videoData.ready ? "ready" : "processing",
+      // processingProgress: videoData.ready ? 100 : 0,
+      // publishedAt: videoData.ready ? new Date() : null,
+      //streamData: videoData, // Store complete Cloudflare response
     });
 
     res.status(201).json(video);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const getVideos = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const videos = await Video.find()
+      .populate("uploadedBy", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Video.countDocuments();
+
+    res.status(200).json({
+      videos,
+      page,
+      pages: Math.ceil(total / limit),
+      total,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -53,6 +92,24 @@ const getVideo = async (req, res) => {
     video.views += 1;
     await video.save();
     res.status(200).json({ video });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+const searchVideos = async (req, res) => {
+  try {
+    const { q, page = 1, limit = 10 } = req.query;
+    console.log(q);
+    const videos = await Video.find(
+      { $text: { $search: `${q}` } },
+      { score: { $meta: "textScore" } }
+    )
+      .sort({ score: { $meta: "textScore" } })
+      .populate("uploadedBy", "name email")
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    res.json(videos);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -74,34 +131,13 @@ const deleteVideo = async (req, res) => {
         .json({ message: "Not authorised to delete this video" });
     }
 
-    const filePath = path.join(__dirname, "..", "public", video.fileUrl);
+    const filePath = path.join(process.cwd(), video.videoUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
     await Video.findByIdAndDelete(req.params.id);
     res.json({ message: "Video removed" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-const getVideos = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const videos = (await Video.find().populate("uploadedBy", "name email"))
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-    const total = await Video.countDocuments();
-
-    res.status(200).json({
-      videos,
-      page,
-      pages: Math.ceil(total / limit),
-      total,
-    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -130,6 +166,7 @@ const addRating = async (req, res) => {
   try {
     const userId = req.user && req.user._id;
     const { rating, comment } = req.body;
+    console.log("rating on add rating: ", req.body);
     const { id } = req.params;
 
     if (!userId) {
@@ -219,6 +256,7 @@ export {
   uploadVideo,
   getVideos,
   getVideo,
+  searchVideos,
   deleteVideo,
   updateVideoStatus,
   trackWatchTime,

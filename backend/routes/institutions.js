@@ -12,19 +12,19 @@ import { protect, authorize } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// 🔓 Public routes - Anyone can access
+// Public routes - Anyone can access
 router.get("/", getInstitutions); // Get all institutions
 router.get("/:id", getInstitution); // Get single institution
 
-// 🔐 Protected routes - Require authentication
+// Protected routes - Require authentication
 router.use(protect);
 
-// 👑 Admin only routes
+// Admin only routes
 router.post("/", authorize("admin"), createInstitution); // Create institution
 router.patch("/:id", authorize("admin"), updateInstitution); // Update institution
 router.delete("/:id", authorize("admin"), deleteInstitution); // Delete institution
 
-// 📊 Analytics & User routes - Admin or Institution Admin
+// Analytics & User routes - Admin or Institution Admin
 router.get("/:id/analytics", getInstitutionAnalytics); // Get institution analytics
 router.get("/:id/users", getInstitutionUsers); // Get institution users
 

@@ -18,7 +18,7 @@ const analyticsSchema = new mongoose.Schema(
 
     contentType: {
       type: String,
-      enum: ["video", "book", "course"],
+      enum: ["Video", "Book"],
       required: true,
     },
 
@@ -95,10 +95,11 @@ analyticsSchema.statics.getUserEngagement = function (
   startDate,
   endDate
 ) {
+  const objectUserId = new mongoose.Types.ObjectId(userId);
   return this.aggregate([
     {
       $match: {
-        userId: mongoose.Types.ObjectId(userId),
+        userId: objectUserId,
         createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
       },
     },
@@ -197,7 +198,7 @@ analyticsSchema.statics.getInstitutionEngagement = function (
   return this.aggregate([
     {
       $match: {
-        institution: mongoose.Types.ObjectId(institutionId),
+        institution: new mongoose.Types.ObjectId(institutionId),
         createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
       },
     },
@@ -217,40 +218,6 @@ analyticsSchema.statics.getInstitutionEngagement = function (
         totalWatchTime: 1,
         uniqueUsersCount: { $size: "$uniqueUsers" },
         avgProgress: 1,
-        _id: 0,
-      },
-    },
-  ]);
-};
-
-analyticsSchema.statics.getUserEngagement = function (
-  userId,
-  startDate,
-  endDate
-) {
-  return this.aggregate([
-    {
-      $match: {
-        userId: mongoose.Types.ObjectId(userId),
-        createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
-      },
-    },
-    {
-      $group: {
-        _id: "$contentType",
-        totalActions: { $sum: 1 },
-        totalWatchTime: { $sum: "$watchTime" },
-        avgProgress: { $avg: "$progress" },
-        lastActivity: { $max: "$createdAt" },
-      },
-    },
-    {
-      $project: {
-        contentType: "$_id",
-        totalActions: 1,
-        totalWatchTime: 1,
-        avgProgress: 1,
-        lastActivity: 1,
         _id: 0,
       },
     },

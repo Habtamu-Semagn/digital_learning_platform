@@ -19,6 +19,7 @@ export async function addOrUpdateRating({ videoId, userId, rating, comment }) {
     err.status = 404;
     throw err;
   }
+  console.log("rating: ", rating);
 
   const value = Number(rating);
   if (isNaN(value) || value < 1 || value > 5) throw new Error("Invalid rating");
