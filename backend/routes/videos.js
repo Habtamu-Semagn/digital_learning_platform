@@ -13,7 +13,6 @@ import {
 import { protect } from "../controllers/authController.js";
 import { videoUpload } from "../middleware/uploadVideo.js";
 import { ValidateVideoFields } from "../middleware/validateVideoField.js";
-import { searchBooks } from "../controllers/bookController.js";
 
 const router = express.Router();
 
