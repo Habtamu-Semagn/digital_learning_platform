@@ -12,6 +12,15 @@ import videoRoutes from "./routes/videos.js";
 import analyticsRoutes from "./routes/analytics.js";
 import institutionRoutes from "./routes/institutions.js";
 import userRoutes from "./routes/users.js";
+import auditLogRoutes from "./routes/auditLogs.js";
+import systemConfigRoutes from "./routes/systemConfig.js";
+import courseRoutes from "./routes/courses.js";
+import assignmentRoutes from "./routes/assignments.js";
+import announcementRoutes from "./routes/announcements.js";
+import questionRoutes from "./routes/questions.js";
+import studentCourseRoutes from "./routes/studentCourses.js";
+import studentProgressRoutes from "./routes/studentProgress.js";
+import studentAssignmentRoutes from "./routes/studentAssignments.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +56,15 @@ app.use("/api/videos", videoRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/institutions", institutionRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
+app.use("/api/system-config", systemConfigRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/announcements", announcementRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/students/courses", studentCourseRoutes);
+app.use("/api/students/progress", studentProgressRoutes);
+app.use("/api/students/assignments", studentAssignmentRoutes);
 
 // Health check route
 app.get("/api/health", (req, res) => {

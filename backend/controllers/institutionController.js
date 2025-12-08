@@ -25,16 +25,14 @@ const getInstitutions = async (req, res) => {
     }
 
     const institutions = await Institution.find(query)
-      .select("name emailDomain type logo website isActive")
+      .select("name emailDomain contactEmail type logo website isActive")
       .sort({ name: 1 });
 
     res.json({
-      status: "success",
-      data: {
-        institutions,
-        count: institutions.length,
-      },
-    });
+      institutions,
+      count: institutions.length,
+    },
+    );
   } catch (error) {
     res.status(500).json({
       status: "error",

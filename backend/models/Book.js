@@ -13,6 +13,11 @@ const bookSchema = new Schema(
       default: "",
       trim: true,
     },
+    author: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     language: {
       type: String,
       default: "en",

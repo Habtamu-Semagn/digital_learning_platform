@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { StudentAPI } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -18,142 +19,78 @@ import {
   Clock,
   Users,
   Play,
-  Calendar,
   Search,
   Filter,
   Star,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-
-// Mock data - replace with actual API calls
-const enrolledCourses = [
-  {
-    _id: "course_1",
-    title: "Advanced Mathematics",
-    instructor: "Dr. Sarah Smith",
-    description:
-      "Master advanced mathematical concepts including calculus, linear algebra, and differential equations.",
-    progress: 65,
-    thumbnail: "/thumbnails/math.jpg",
-    category: "Mathematics",
-    duration: "8 weeks",
-    students: 124,
-    nextAssignment: "Quiz 3 - Due Jan 20",
-    lastAccessed: "2024-01-15T10:30:00Z",
-    modules: [
-      { title: "Calculus Fundamentals", completed: true },
-      { title: "Linear Algebra", completed: true },
-      { title: "Differential Equations", completed: false },
-      { title: "Advanced Topics", completed: false },
-    ],
-  },
-  {
-    _id: "course_2",
-    title: "Introduction to Computer Science",
-    instructor: "Prof. John Davis",
-    description:
-      "Learn programming fundamentals with Python and basic computer science concepts.",
-    progress: 30,
-    thumbnail: "/thumbnails/cs.jpg",
-    category: "Computer Science",
-    duration: "12 weeks",
-    students: 89,
-    nextAssignment: "Project 1 - Due Jan 25",
-    lastAccessed: "2024-01-14T14:20:00Z",
-    modules: [
-      { title: "Python Basics", completed: true },
-      { title: "Data Structures", completed: false },
-      { title: "Algorithms", completed: false },
-      { title: "Final Project", completed: false },
-    ],
-  },
-  {
-    _id: "course_3",
-    title: "Modern Physics",
-    instructor: "Dr. Emily Chen",
-    description:
-      "Explore quantum mechanics, relativity, and modern physics theories.",
-    progress: 100,
-    thumbnail: "/thumbnails/physics.jpg",
-    category: "Physics",
-    duration: "10 weeks",
-    students: 67,
-    nextAssignment: "None - Completed",
-    lastAccessed: "2024-01-10T09:15:00Z",
-    modules: [
-      { title: "Quantum Mechanics", completed: true },
-      { title: "Special Relativity", completed: true },
-      { title: "Particle Physics", completed: true },
-      { title: "Cosmology", completed: true },
-    ],
-  },
-];
-
-const availableCourses = [
-  {
-    _id: "course_4",
-    title: "Data Science Fundamentals",
-    instructor: "Dr. Mike Johnson",
-    description:
-      "Learn data analysis, visualization, and machine learning basics.",
-    thumbnail: "/thumbnails/datascience.jpg",
-    category: "Data Science",
-    duration: "10 weeks",
-    students: 203,
-    rating: 4.8,
-    enrollmentCount: 150,
-    isEnrolled: false,
-  },
-  {
-    _id: "course_5",
-    title: "Digital Marketing",
-    instructor: "Prof. Lisa Wang",
-    description:
-      "Master digital marketing strategies, SEO, and social media marketing.",
-    thumbnail: "/thumbnails/marketing.jpg",
-    category: "Business",
-    duration: "6 weeks",
-    students: 178,
-    rating: 4.6,
-    enrollmentCount: 120,
-    isEnrolled: false,
-  },
-];
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function MyCoursesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("enrolled");
   const [searchQuery, setSearchQuery] = useState("");
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleEnroll = async (courseId: string) => {
-    // API call to enroll in course
+  useEffect(() => {
+    fetchCourses();
+  }, [activeTab]);
+
+  const fetchCourses = async () => {
     try {
-      const response = await fetch(`/api/courses/${courseId}/enroll`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        alert("Successfully enrolled in course!");
-        // Refresh course list or update state
+      setLoading(true);
+      if (activeTab === "enrolled") {
+        const courses = await StudentAPI.getEnrolledCourses();
+        setEnrolledCourses(courses || []);
+      } else {
+        const courses = await StudentAPI.getAvailableCourses();
+        setAvailableCourses(courses || []);
       }
     } catch (error) {
-      alert("Failed to enroll in course. Please try again.");
+      console.error("Failed to fetch courses:", error);
+      toast.error("Failed to load courses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnroll = async (courseId: string) => {
+    try {
+      await StudentAPI.enrollInCourse(courseId);
+      toast.success("Successfully enrolled in course!");
+      fetchCourses();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to enroll in course");
+    }
+  };
+
+  const handleUnenroll = async (courseId: string) => {
+    try {
+      await StudentAPI.unenrollFromCourse(courseId);
+      toast.success("Successfully unenrolled from course");
+      fetchCourses();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to unenroll from course");
     }
   };
 
   const filteredEnrolledCourses = enrolledCourses.filter(
     (course) =>
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.category.toLowerCase().includes(searchQuery.toLowerCase())
+      course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.instructor?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredAvailableCourses = availableCourses.filter(
     (course) =>
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.category.toLowerCase().includes(searchQuery.toLowerCase())
+      course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.instructor?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -177,17 +114,9 @@ export default function MyCoursesPage() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Filter
-        </Button>
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="enrolled" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
@@ -201,7 +130,11 @@ export default function MyCoursesPage() {
 
         {/* Enrolled Courses Tab */}
         <TabsContent value="enrolled" className="space-y-6">
-          {filteredEnrolledCourses.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredEnrolledCourses.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
@@ -223,6 +156,8 @@ export default function MyCoursesPage() {
                   key={course._id}
                   course={course}
                   isEnrolled={true}
+                  onUnenroll={handleUnenroll}
+                  router={router}
                 />
               ))}
             </div>
@@ -231,7 +166,11 @@ export default function MyCoursesPage() {
 
         {/* Available Courses Tab */}
         <TabsContent value="available" className="space-y-6">
-          {filteredAvailableCourses.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredAvailableCourses.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Play className="h-12 w-12 text-muted-foreground mb-4" />
@@ -262,13 +201,8 @@ export default function MyCoursesPage() {
 }
 
 // Course Card Component
-function CourseCard({ course, isEnrolled, onEnroll }: any) {
-  const getProgressColor = (progress: number) => {
-    if (progress === 100) return "bg-green-500";
-    if (progress >= 70) return "bg-blue-500";
-    if (progress >= 40) return "bg-yellow-500";
-    return "bg-gray-500";
-  };
+function CourseCard({ course, isEnrolled, onEnroll, onUnenroll, router }: any) {
+  const progress = course.enrollmentProgress || 0;
 
   const getProgressText = (progress: number) => {
     if (progress === 100) return "Completed";
@@ -293,24 +227,15 @@ function CourseCard({ course, isEnrolled, onEnroll }: any) {
           {/* Progress Badge for enrolled courses */}
           {isEnrolled && (
             <Badge
-              className={`absolute top-2 right-2 ${
-                course.progress === 100 ? "bg-green-500" : "bg-blue-500"
-              } text-white`}
+              className={`absolute top-2 right-2 ${progress === 100 ? "bg-green-500" : "bg-blue-500"
+                } text-white`}
             >
-              {course.progress === 100 ? "Completed" : `${course.progress}%`}
-            </Badge>
-          )}
-
-          {/* Rating Badge for available courses */}
-          {!isEnrolled && course.rating && (
-            <Badge className="absolute top-2 right-2 bg-yellow-500 text-white flex items-center gap-1">
-              <Star className="h-3 w-3 fill-current" />
-              {course.rating}
+              {progress === 100 ? "Completed" : `${progress}%`}
             </Badge>
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 mt-3">
           <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
             {course.title}
           </CardTitle>
@@ -318,84 +243,48 @@ function CourseCard({ course, isEnrolled, onEnroll }: any) {
             {course.description}
           </CardDescription>
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{course.instructor}</span>
-            <Badge variant="secondary" className="capitalize">
-              {course.category}
-            </Badge>
+            <span className="font-medium">{course.instructor?.name || 'Instructor'}</span>
+            {course.category && (
+              <Badge variant="secondary" className="capitalize">
+                {course.category}
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-4 pt-0 space-y-3">
-        {/* Course Stats */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>{course.duration}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
-            <span>{course.students} students</span>
-          </div>
-        </div>
-
         {/* Progress for enrolled courses */}
         {isEnrolled && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Progress</span>
-              <span
-                className={
-                  course.progress === 100 ? "text-green-600 font-medium" : ""
-                }
-              >
-                {getProgressText(course.progress)}
+              <span className={progress === 100 ? "text-green-600 font-medium" : ""}>
+                {getProgressText(progress)}
               </span>
             </div>
-            <Progress
-              value={course.progress}
-              className={`h-2 ${getProgressColor(course.progress)}`}
-            />
-
-            {/* Next Assignment */}
-            {course.nextAssignment && course.progress !== 100 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span className="line-clamp-1">{course.nextAssignment}</span>
-              </div>
-            )}
-
-            {/* Module Progress */}
-            <div className="space-y-1">
-              {course.modules.slice(0, 3).map((module: any, index: number) => (
-                <div key={index} className="flex items-center gap-2 text-sm">
-                  {module.completed ? (
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <div className="h-3 w-3 rounded-full border border-gray-300" />
-                  )}
-                  <span className={module.completed ? "text-green-600" : ""}>
-                    {module.title}
-                  </span>
-                </div>
-              ))}
-              {course.modules.length > 3 && (
-                <div className="text-xs text-muted-foreground">
-                  +{course.modules.length - 3} more modules
-                </div>
-              )}
-            </div>
+            <Progress value={progress} className="h-2" />
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex gap-2">
         {isEnrolled ? (
-          <Button className="w-full" asChild>
-            <a href={`/student/courses/${course._id}`}>
-              {course.progress === 100 ? "Review Course" : "Continue Learning"}
-            </a>
-          </Button>
+          <>
+            <Button
+              className="flex-1"
+              onClick={() => router?.push(`/dashboard/student/courses/${course._id}`)}
+            >
+              {progress === 100 ? "Review Course" : "Continue Learning"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onUnenroll?.(course._id)}
+            >
+              Unenroll
+            </Button>
+          </>
         ) : (
           <Button className="w-full" onClick={() => onEnroll?.(course._id)}>
             Enroll Now

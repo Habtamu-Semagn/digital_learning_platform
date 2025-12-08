@@ -1,4 +1,7 @@
 "use client";
+
+import { useState, useEffect } from "react";
+import { StudentAPI } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,115 +13,97 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  Activity,
   BookOpen,
-  Calendar,
   Clock,
-  Eye,
-  Play,
-  Search,
-  Target,
+  Calendar,
+  FileText,
+  Loader2,
   TrendingUp,
-  Video,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function StudentDashboardPage() {
-  const [analyticsData, setAnalyticsData] = useState({
-    userEngagement: [
-      {
-        _id: "Video",
-        totalActions: 2,
-        totalWatchTime: 0,
-        avgProgress: 0,
-        lastActivity: "2025-10-31T09:54:14.307Z",
-      },
-    ],
-    recentActivity: [
-      {
-        _id: "6904874689516e48791db9cf",
-        contentId: null,
-        contentType: "Video",
-        action: "search",
-        createdAt: "2025-10-31T09:54:14.307Z",
-      },
-      {
-        _id: "6904871389516e48791db9ca",
-        contentId: null,
-        contentType: "Video",
-        action: "view",
-        createdAt: "2025-10-31T09:53:23.219Z",
-      },
-    ],
-    dateRange: {
-      start: "2025-10-04T18:28:53.924Z",
-      end: "2025-11-03T18:28:53.924Z",
-    },
-  });
-  const videoStats = analyticsData.userEngagement.find(
-    (stat) => stat._id === "Video"
-  );
-  const getActivityIcon = (action: string) => {
-    switch (action) {
-      case "search":
-        return <Search className="h-4 w-4" />;
-      case "view":
-        return <Eye className="h-4 w-4" />;
-      default:
-        return <Activity className="h-4 w-4" />;
+  const router = useRouter();
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [coursesData, assignmentsData] = await Promise.all([
+        StudentAPI.getEnrolledCourses(),
+        StudentAPI.getMyAssignments({ status: 'all' })
+      ]);
+      setEnrolledCourses(coursesData || []);
+      setAssignments(assignmentsData || []);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    } finally {
+      setLoading(false);
     }
   };
-  const getActivityVariant = (action: string) => {
-    switch (action) {
-      case "search":
-        return "secondary";
-      case "view":
-        return "default";
-      default:
-        return "outline";
-    }
-  };
+
+  // Calculate stats
+  const activeCourses = enrolledCourses.length;
+  const pendingAssignments = assignments.filter(a => !a.hasSubmitted).length;
+  const avgProgress = enrolledCourses.length > 0
+    ? Math.round(enrolledCourses.reduce((sum, c) => sum + (c.enrollmentProgress || 0), 0) / enrolledCourses.length)
+    : 0;
+
+  // Upcoming assignments (next 5, sorted by due date)
+  const upcomingAssignments = assignments
+    .filter(a => !a.hasSubmitted)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Learning Dashboard
-        </h2>
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {new Date(analyticsData.dateRange.start).toLocaleDateString()} -{" "}
-            {new Date(analyticsData.dateRange.end).toLocaleDateString()}
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Learning Dashboard</h2>
+          <p className="text-muted-foreground">Welcome back! Continue your learning journey</p>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Actions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {videoStats?.totalActions || 0}
-            </div>
+            <div className="text-2xl font-bold">{activeCourses}</div>
             <p className="text-xs text-muted-foreground">
-              Across all content types
+              Enrolled courses
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Watch Time</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Assignments</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {videoStats?.totalWatchTime || 0}m
-            </div>
+            <div className="text-2xl font-bold">{pendingAssignments}</div>
             <p className="text-xs text-muted-foreground">
-              Video content engagement
+              Awaiting submission
             </p>
           </CardContent>
         </Card>
@@ -126,135 +111,132 @@ export default function StudentDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {videoStats?.avgProgress || 0}%
-            </div>
-            <Progress value={videoStats?.avgProgress || 0} className="mt-2" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Active</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {videoStats?.lastActivity
-                ? new Date(videoStats.lastActivity).toLocaleDateString()
-                : "Never"}
-            </div>
-            <p className="text-xs text-muted-foreground">Recent engagement</p>
+            <div className="text-2xl font-bold">{avgProgress}%</div>
+            <Progress value={avgProgress} className="mt-2" />
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Recent Activity */}
+        {/* Enrolled Courses */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Your latest learning activities and interactions
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>My Courses</CardTitle>
+                <CardDescription>Your currently enrolled courses</CardDescription>
+              </div>
+              <Button variant="outline" onClick={() => router.push('/dashboard/student/courses')}>
+                View All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analyticsData.recentActivity.map((activity) => (
-                <div key={activity._id} className="flex items-center space-x-4">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    {getActivityIcon(activity.action)}
+            {enrolledCourses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium">No courses enrolled</p>
+                <p className="text-sm text-muted-foreground mt-2 mb-4">
+                  Start learning by enrolling in a course
+                </p>
+                <Button onClick={() => router.push('/dashboard/student/courses')}>
+                  Browse Courses
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {enrolledCourses.slice(0, 3).map((course) => (
+                  <div
+                    key={course._id}
+                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                    onClick={() => router.push(`/dashboard/student/courses/${course._id}`)}
+                  >
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{course.title}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {course.instructor?.name || 'Instructor'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Progress value={course.enrollmentProgress || 0} className="h-1 flex-1" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {course.enrollmentProgress || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    {course.enrollmentProgress === 100 && (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    )}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {activity.action === "search"
-                        ? "Searched for content"
-                        : "Viewed content"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(activity.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <Badge variant={getActivityVariant(activity.action)}>
-                    {activity.contentType}
-                  </Badge>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-              {analyticsData.recentActivity.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium">No recent activity</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Start exploring content to see your activity here
-                  </p>
-                  <Button className="mt-4">Browse Content</Button>
-                </div>
-              )}
+        {/* Upcoming Assignments */}
+        <Card className="col-span-3">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Upcoming Assignments</CardTitle>
+                <CardDescription>Assignments due soon</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/dashboard/student/assignments')}
+              >
+                View All
+              </Button>
             </div>
+          </CardHeader>
+          <CardContent>
+            {upcomingAssignments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-sm font-medium">No pending assignments</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You're all caught up!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingAssignments.map((assignment) => (
+                  <div
+                    key={assignment._id}
+                    className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                    onClick={() => router.push(`/dashboard/student/assignments/${assignment._id}`)}
+                  >
+                    <div className="flex-shrink-0 mt-1">
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-sm font-medium truncate">{assignment.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {assignment.course?.title}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {assignment.points} pts
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Engagement Insights */}
-      <Card className="col-span-3">
-        <CardHeader>
-          <CardTitle>Engagement Insights</CardTitle>
-          <CardDescription>
-            Your learning patterns and recommendations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Content Type Distribution */}
-          <>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Video Content</span>
-                <span className="text-sm text-muted-foreground">100%</span>
-              </div>
-              <Progress value={100} className="w-full" />
-            </div>
-
-            {/* Activity Frequency */}
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center space-x-2">
-                <Video className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">Video Focused</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Most of your activity is with video content
-              </p>
-            </div>
-          </>
-
-          <div className="rounded-lg border p-3">
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium">Active Explorer</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              You're actively searching for new learning materials
-            </p>
-          </div>
-
-          <div className="rounded-lg border p-3 bg-muted/50">
-            <div className="flex items-center space-x-2">
-              <Play className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-medium">Getting Started</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Begin watching videos to track your progress
-            </p>
-            <Button size="sm" className="mt-2 w-full">
-              Start Learning
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Quick Actions */}
       <Card>
@@ -264,32 +246,44 @@ export default function StudentDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-auto p-4 justify-start">
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              onClick={() => router.push('/dashboard/student/courses')}
+            >
               <BookOpen className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <p className="font-medium">Browse Library</p>
+                <p className="font-medium">Browse Courses</p>
                 <p className="text-sm text-muted-foreground">
-                  Explore books and materials
+                  Explore and enroll in new courses
                 </p>
               </div>
             </Button>
 
-            <Button variant="outline" className="h-auto p-4 justify-start">
-              <Video className="h-5 w-5 mr-3" />
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              onClick={() => router.push('/dashboard/student/assignments')}
+            >
+              <FileText className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <p className="font-medium">Watch Videos</p>
+                <p className="font-medium">View Assignments</p>
                 <p className="text-sm text-muted-foreground">
-                  Continue learning with videos
+                  Submit pending assignments
                 </p>
               </div>
             </Button>
 
-            <Button variant="outline" className="h-auto p-4 justify-start">
-              <Search className="h-5 w-5 mr-3" />
+            <Button
+              variant="outline"
+              className="h-auto p-4 justify-start"
+              onClick={() => router.push('/dashboard/student/library')}
+            >
+              <BookOpen className="h-5 w-5 mr-3" />
               <div className="text-left">
-                <p className="font-medium">Search Content</p>
+                <p className="font-medium">Library</p>
                 <p className="text-sm text-muted-foreground">
-                  Find specific topics
+                  Access books and resources
                 </p>
               </div>
             </Button>

@@ -67,6 +67,114 @@ const userSchema = new Schema(
       type: Date,
     },
     passwordChangedAt: { type: Date },
+
+    // Instructor-specific profile
+    instructorProfile: {
+      bio: {
+        type: String,
+        maxlength: 500,
+        trim: true,
+      },
+      title: {
+        type: String,
+        maxlength: 100,
+        trim: true,
+      },
+      socialLinks: {
+        linkedin: {
+          type: String,
+          validate: {
+            validator: function (v) {
+              return !v || /^https?:\/\/(www\.)?linkedin\.com\/.+/.test(v);
+            },
+            message: 'Invalid LinkedIn URL'
+          }
+        },
+        twitter: {
+          type: String,
+          validate: {
+            validator: function (v) {
+              return !v || /^https?:\/\/(www\.)?twitter\.com\/.+/.test(v);
+            },
+            message: 'Invalid Twitter URL'
+          }
+        },
+        website: {
+          type: String,
+          validate: {
+            validator: function (v) {
+              return !v || /^https?:\/\/.+\..+/.test(v);
+            },
+            message: 'Invalid website URL'
+          }
+        },
+      },
+    },
+
+    // User preferences
+    preferences: {
+      notifications: {
+        emailEnabled: { type: Boolean, default: true },
+        newEnrollments: { type: Boolean, default: true },
+        newSubmissions: { type: Boolean, default: true },
+        newQuestions: { type: Boolean, default: true },
+        studentMessages: { type: Boolean, default: true },
+        digestFrequency: {
+          type: String,
+          enum: ['immediate', 'daily', 'weekly'],
+          default: 'immediate',
+        },
+      },
+      privacy: {
+        profileVisibility: {
+          type: String,
+          enum: ['public', 'students', 'private'],
+          default: 'students',
+        },
+        showEmail: { type: Boolean, default: false },
+        allowMessages: { type: Boolean, default: true },
+      },
+      courseDefaults: {
+        defaultPoints: {
+          type: Number,
+          min: 0,
+          max: 1000,
+          default: 100,
+        },
+        defaultDueDateOffset: {
+          type: Number,
+          min: 1,
+          max: 365,
+          default: 7,
+        },
+        autoPublishAnnouncements: { type: Boolean, default: false },
+      },
+    },
+
+    // Student course enrollments
+    enrolledCourses: [{
+      course: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
+        required: true
+      },
+      enrolledAt: {
+        type: Date,
+        default: Date.now
+      },
+      status: {
+        type: String,
+        enum: ['active', 'completed', 'dropped'],
+        default: 'active'
+      },
+      lastAccessedAt: Date,
+      progress: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      }
+    }]
   },
   { timestamps: true },
   { toJSON: { virtuals: true } }

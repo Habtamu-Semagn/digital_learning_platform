@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { StudentAPI } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -14,15 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  Filter,
   BookOpen,
   Download,
-  Bookmark,
   Clock,
   Eye,
   FileText,
   X,
-  SlidersHorizontal,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Select,
@@ -31,120 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-
-// Mock data - replace with actual API calls
-const libraryBooks = [
-  {
-    _id: "book_1",
-    title: "Advanced Calculus",
-    description:
-      "Comprehensive guide to advanced calculus concepts including multivariable calculus and vector analysis.",
-    fileUrl: "/books/calculus.pdf",
-    fileSize: 2540000,
-    fileType: "pdf",
-    category: "Mathematics",
-    tags: ["calculus", "mathematics", "advanced"],
-    thumbnail: "/thumbnails/calculus.jpg",
-    uploadedBy: "Dr. Sarah Smith",
-    viewCount: 156,
-    downloadCount: 89,
-    averageRating: 4.7,
-    duration: "3h 15m",
-    createdAt: "2024-01-10T08:00:00Z",
-  },
-  {
-    _id: "book_2",
-    title: "Introduction to Python Programming",
-    description:
-      "Learn Python from scratch with practical examples and projects.",
-    fileUrl: "/books/python.epub",
-    fileSize: 1850000,
-    fileType: "epub",
-    category: "Computer Science",
-    tags: ["python", "programming", "beginner"],
-    thumbnail: "/thumbnails/python.jpg",
-    uploadedBy: "Prof. John Davis",
-    viewCount: 234,
-    downloadCount: 167,
-    averageRating: 4.8,
-    duration: "4h 30m",
-    createdAt: "2024-01-12T14:30:00Z",
-  },
-  {
-    _id: "book_3",
-    title: "Modern Physics Textbook",
-    description:
-      "Comprehensive coverage of modern physics including quantum mechanics and relativity.",
-    fileUrl: "/books/physics.pdf",
-    fileSize: 3200000,
-    fileType: "pdf",
-    category: "Physics",
-    tags: ["physics", "quantum", "relativity"],
-    thumbnail: "/thumbnails/physics.jpg",
-    uploadedBy: "Dr. Emily Chen",
-    viewCount: 98,
-    downloadCount: 45,
-    averageRating: 4.6,
-    duration: "5h 20m",
-    createdAt: "2024-01-08T11:20:00Z",
-  },
-  {
-    _id: "book_4",
-    title: "Organic Chemistry Fundamentals",
-    description:
-      "Essential organic chemistry concepts with detailed explanations and examples.",
-    fileUrl: "/books/chemistry.pdf",
-    fileSize: 2870000,
-    fileType: "pdf",
-    category: "Chemistry",
-    tags: ["chemistry", "organic", "science"],
-    thumbnail: "/thumbnails/chemistry.jpg",
-    uploadedBy: "Prof. Mike Johnson",
-    viewCount: 167,
-    downloadCount: 92,
-    averageRating: 4.5,
-    duration: "3h 45m",
-    createdAt: "2024-01-15T09:45:00Z",
-  },
-  {
-    _id: "book_5",
-    title: "Data Structures and Algorithms",
-    description:
-      "Master data structures and algorithms with practical implementations.",
-    fileUrl: "/books/algorithms.epub",
-    fileSize: 2150000,
-    fileType: "epub",
-    category: "Computer Science",
-    tags: ["algorithms", "data structures", "programming"],
-    thumbnail: "/thumbnails/algorithms.jpg",
-    uploadedBy: "Dr. Lisa Wang",
-    viewCount: 189,
-    downloadCount: 134,
-    averageRating: 4.9,
-    duration: "6h 15m",
-    createdAt: "2024-01-05T16:20:00Z",
-  },
-  {
-    _id: "book_6",
-    title: "World History: Ancient Civilizations",
-    description:
-      "Explore ancient civilizations and their impact on modern society.",
-    fileUrl: "/books/history.pdf",
-    fileSize: 1980000,
-    fileType: "pdf",
-    category: "History",
-    tags: ["history", "ancient", "civilizations"],
-    thumbnail: "/thumbnails/history.jpg",
-    uploadedBy: "Prof. Robert Brown",
-    viewCount: 76,
-    downloadCount: 38,
-    averageRating: 4.4,
-    duration: "4h 10m",
-    createdAt: "2024-01-18T13:15:00Z",
-  },
-];
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const categories = [
   "All",
@@ -155,39 +43,82 @@ const categories = [
   "History",
   "Literature",
   "Biology",
+  "General",
 ];
-const fileTypes = ["All", "pdf", "epub", "doc"];
+
 const sortOptions = [
   { value: "newest", label: "Newest First" },
   { value: "popular", label: "Most Popular" },
   { value: "title", label: "Title A-Z" },
-  { value: "rating", label: "Highest Rated" },
 ];
 
 export default function LibraryPage() {
-  const [books, setBooks] = useState(libraryBooks);
+  const router = useRouter();
+  const [books, setBooks] = useState<any[]>([]);
+  const [allBooks, setAllBooks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedFileType, setSelectedFileType] = useState("All");
   const [sortBy, setSortBy] = useState("newest");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
 
-  // Filter and search books
   useEffect(() => {
-    let filteredBooks = libraryBooks;
+    fetchBooks();
+  }, []);
 
-    // Search filter
-    if (searchQuery) {
-      filteredBooks = filteredBooks.filter(
-        (book) =>
-          book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.tags.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase())
-          ) ||
-          book.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      handleSearch();
+    } else {
+      applyFilters();
     }
+  }, [searchQuery, selectedCategory, sortBy, allBooks]);
+
+  const fetchBooks = async () => {
+    try {
+      setLoading(true);
+      const data = await StudentAPI.getAllBooks(1, 100);
+      setAllBooks(data.books || []);
+      setBooks(data.books || []);
+    } catch (error) {
+      console.error("Failed to fetch books:", error);
+      toast.error("Failed to load library");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      applyFilters();
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const results = await StudentAPI.searchBooks(searchQuery);
+      let filteredResults = results;
+
+      // Apply category filter
+      if (selectedCategory !== "All") {
+        filteredResults = filteredResults.filter(
+          (book: any) => book.category === selectedCategory
+        );
+      }
+
+      // Apply sorting
+      filteredResults = applySorting(filteredResults);
+      setBooks(filteredResults);
+    } catch (error) {
+      console.error("Search failed:", error);
+      toast.error("Search failed");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filteredBooks = [...allBooks];
 
     // Category filter
     if (selectedCategory !== "All") {
@@ -196,73 +127,33 @@ export default function LibraryPage() {
       );
     }
 
-    // File type filter
-    if (selectedFileType !== "All") {
-      filteredBooks = filteredBooks.filter(
-        (book) => book.fileType === selectedFileType
-      );
-    }
-
     // Sort books
-    filteredBooks = [...filteredBooks].sort((a, b) => {
+    filteredBooks = applySorting(filteredBooks);
+    setBooks(filteredBooks);
+  };
+
+  const applySorting = (booksToSort: any[]) => {
+    return [...booksToSort].sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case "popular":
-          return b.viewCount - a.viewCount;
+          return (b.views || 0) - (a.views || 0);
         case "title":
           return a.title.localeCompare(b.title);
-        case "rating":
-          return b.averageRating - a.averageRating;
         default:
           return 0;
       }
     });
-
-    setBooks(filteredBooks);
-  }, [searchQuery, selectedCategory, selectedFileType, sortBy]);
-
-  const handleDownload = async (bookId: string) => {
-    try {
-      await fetch(`/api/books/${bookId}/download`, {
-        method: "POST",
-      });
-      alert("Download started!");
-    } catch (error) {
-      alert("Failed to download book");
-    }
-  };
-
-  const handleBookmark = async (bookId: string) => {
-    try {
-      await fetch(`/api/bookmarks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId: bookId, contentType: "book" }),
-      });
-      alert("Book added to bookmarks!");
-    } catch (error) {
-      alert("Failed to bookmark book");
-    }
   };
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
-    setSelectedFileType("All");
     setSortBy("newest");
   };
 
-  const hasActiveFilters =
-    searchQuery || selectedCategory !== "All" || selectedFileType !== "All";
-
-  const activeFiltersCount = [
-    searchQuery ? 1 : 0,
-    selectedCategory !== "All" ? 1 : 0,
-    selectedFileType !== "All" ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  const hasActiveFilters = searchQuery || selectedCategory !== "All";
 
   return (
     <div className="space-y-6">
@@ -274,287 +165,90 @@ export default function LibraryPage() {
         </p>
       </div>
 
-      {/* Main Filters Bar */}
+      {/* Filters Bar */}
       <Card>
         <CardContent className="p-4">
-          <div className="space-y-4">
-            {/* Search and Main Controls */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              {/* Search Bar */}
-              <div className="relative w-full lg:w-80">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search books, topics, authors..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                {/* Category Filter */}
-                <div className="w-full sm:w-48">
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* File Type Filter */}
-                <div className="w-full sm:w-32">
-                  <Select
-                    value={selectedFileType}
-                    onValueChange={setSelectedFileType}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fileTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type.toUpperCase()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Sort */}
-                <div className="w-full sm:w-40">
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced Filters Toggle and Actions */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className="flex items-center gap-2"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Advanced Filters
-                  {activeFiltersCount > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="h-5 w-5 p-0 flex items-center justify-center text-xs"
-                    >
-                      {activeFiltersCount}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* Active Filters Display */}
-                {hasActiveFilters && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Active filters:</span>
-                    {searchQuery && (
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        Search: "{searchQuery}"
-                        <button onClick={() => setSearchQuery("")}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    {selectedCategory !== "All" && (
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        Category: {selectedCategory}
-                        <button onClick={() => setSelectedCategory("All")}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    {selectedFileType !== "All" && (
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        Type: {selectedFileType}
-                        <button onClick={() => setSelectedFileType("All")}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="flex items-center gap-2"
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            {/* Search Bar */}
+            <div className="relative w-full lg:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search books, topics, authors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
-                  Clear All
-                </Button>
+                </button>
               )}
             </div>
 
-            {/* Advanced Filters Panel */}
-            {showAdvancedFilters && (
-              <div className="pt-4 border-t space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Rating Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm">Minimum Rating</Label>
-                    <Select defaultValue="0">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Any rating" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Any rating</SelectItem>
-                        <SelectItem value="4">⭐ 4.0+</SelectItem>
-                        <SelectItem value="4.5">⭐ 4.5+</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* File Size Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm">File Size</Label>
-                    <Select defaultValue="any">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Any size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any size</SelectItem>
-                        <SelectItem value="small">Small (&lt; 2MB)</SelectItem>
-                        <SelectItem value="medium">Medium (2-5MB)</SelectItem>
-                        <SelectItem value="large">Large (&gt; 5MB)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Upload Date Filter */}
-                  <div className="space-y-2">
-                    <Label className="text-sm">Upload Date</Label>
-                    <Select defaultValue="any">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Any time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any time</SelectItem>
-                        <SelectItem value="week">Past week</SelectItem>
-                        <SelectItem value="month">Past month</SelectItem>
-                        <SelectItem value="year">Past year</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="flex items-center gap-6 text-sm text-muted-foreground pt-2">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">{books.length}</span>
-                    <span>books found</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">
-                      {
-                        libraryBooks.filter((book) => book.fileType === "pdf")
-                          .length
-                      }
-                    </span>
-                    <span>PDF files</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">
-                      {
-                        libraryBooks.filter((book) => book.fileType === "epub")
-                          .length
-                      }
-                    </span>
-                    <span>ePub files</span>
-                  </div>
-                </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              {/* Category Filter */}
+              <div className="w-full sm:w-48">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+
+              {/* Sort */}
+              <div className="w-full sm:w-40">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Results and Books Grid */}
+      {/* Results */}
       <div className="space-y-4">
-        {/* Results Summary */}
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">
-              {books.length} {books.length === 1 ? "Book" : "Books"}
-            </h2>
-            {hasActiveFilters && (
-              <p className="text-sm text-muted-foreground">
-                Filtered results
-                {searchQuery && ` for "${searchQuery}"`}
-                {selectedCategory !== "All" && ` in ${selectedCategory}`}
-                {selectedFileType !== "All" &&
-                  ` (${selectedFileType.toUpperCase()})`}
-              </p>
-            )}
-          </div>
-
-          {/* View Toggle (Future Enhancement) */}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Grid View
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              List View
-            </Button>
-          </div>
+          <h2 className="text-xl font-semibold">
+            {books.length} {books.length === 1 ? "Book" : "Books"}
+          </h2>
         </div>
 
         {/* Books Grid */}
-        {books.length > 0 ? (
+        {loading || searching ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : books.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {books.map((book) => (
-              <BookCard
-                key={book._id}
-                book={book}
-                onDownload={handleDownload}
-                onBookmark={handleBookmark}
-              />
+              <BookCard key={book._id} book={book} router={router} />
             ))}
           </div>
         ) : (
@@ -564,8 +258,8 @@ export default function LibraryPage() {
               <h3 className="text-xl font-semibold mb-2">No books found</h3>
               <p className="text-muted-foreground text-center mb-6 max-w-md">
                 {hasActiveFilters
-                  ? "We couldn't find any books matching your current filters. Try adjusting your search criteria."
-                  : "No books are currently available in the library. Please check back later."}
+                  ? "We couldn't find any books matching your filters."
+                  : "No books are currently available in the library."}
               </p>
               {hasActiveFilters && (
                 <Button onClick={clearFilters} size="lg">
@@ -580,17 +274,13 @@ export default function LibraryPage() {
   );
 }
 
-// Book Card Component (Same as before)
-function BookCard({ book, onDownload, onBookmark }: any) {
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
-      case "pdf":
-        return <FileText className="h-4 w-4 text-red-500" />;
-      case "epub":
-        return <BookOpen className="h-4 w-4 text-blue-500" />;
-      default:
-        return <FileText className="h-4 w-4 text-gray-500" />;
+// Book Card Component
+function BookCard({ book, router }: any) {
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType?.includes('pdf')) {
+      return <FileText className="h-4 w-4 text-red-500" />;
     }
+    return <BookOpen className="h-4 w-4 text-blue-500" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -598,32 +288,25 @@ function BookCard({ book, onDownload, onBookmark }: any) {
     return `${mb.toFixed(1)} MB`;
   };
 
+  const getFileType = (mimeType: string) => {
+    if (mimeType?.includes('pdf')) return 'PDF';
+    if (mimeType?.includes('epub')) return 'ePub';
+    return 'Document';
+  };
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 h-full flex flex-col">
       <CardHeader className="p-4 pb-2 flex-1">
         {/* Book Thumbnail */}
         <div className="aspect-[3/4] bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center relative overflow-hidden mb-3">
-          {book.thumbnail ? (
-            <img
-              src={book.thumbnail}
-              alt={book.title}
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <BookOpen className="h-12 w-12 text-muted-foreground" />
-          )}
+          <BookOpen className="h-12 w-12 text-muted-foreground" />
 
           {/* File Type Badge */}
           <Badge className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm text-foreground">
             <div className="flex items-center gap-1">
-              {getFileIcon(book.fileType)}
-              <span className="text-xs">{book.fileType.toUpperCase()}</span>
+              {getFileIcon(book.mimeType)}
+              <span className="text-xs">{getFileType(book.mimeType)}</span>
             </div>
-          </Badge>
-
-          {/* Rating Badge */}
-          <Badge className="absolute top-2 left-2 bg-yellow-500 text-white flex items-center gap-1">
-            <span className="text-xs">⭐ {book.averageRating}</span>
           </Badge>
         </div>
 
@@ -633,74 +316,69 @@ function BookCard({ book, onDownload, onBookmark }: any) {
             {book.title}
           </CardTitle>
           <CardDescription className="line-clamp-2 text-sm">
-            {book.description}
+            {book.description || 'No description available'}
           </CardDescription>
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-muted-foreground">
-              {book.uploadedBy}
+              {book.uploadedBy?.name || book.author || 'Unknown'}
             </span>
             <Badge variant="secondary" className="capitalize text-xs">
-              {book.category}
+              {book.category || 'General'}
             </Badge>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-0 space-y-3 flex-1">
+      <CardContent className="p-4 pt-0 space-y-3">
         {/* Stats */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>{book.duration}</span>
+            <Eye className="h-3 w-3" />
+            <span>{book.views || 0} views</span>
           </div>
           <div className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            <span>{book.viewCount} views</span>
+            <Download className="h-3 w-3" />
+            <span>{book.downloads || 0} downloads</span>
           </div>
         </div>
 
         {/* File Info */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formatFileSize(book.fileSize)}</span>
-          <span>{book.downloadCount} downloads</span>
+          <span>{new Date(book.createdAt).toLocaleDateString()}</span>
         </div>
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1">
-          {book.tags.slice(0, 3).map((tag: string) => (
-            <Badge key={tag} variant="outline" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-          {book.tags.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{book.tags.length - 3}
-            </Badge>
-          )}
-        </div>
+        {book.tags && book.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {book.tags.slice(0, 3).map((tag: string) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {book.tags.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{book.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button size="sm" className="flex-1" asChild>
-          <a href={`/student/library/${book._id}`}>
-            <BookOpen className="h-4 w-4 mr-1" />
-            Read
-          </a>
+        <Button size="sm" className="flex-1" onClick={() => router.push(`/dashboard/student/library/${book._id}`)}>
+          <BookOpen className="h-4 w-4 mr-1" />
+          View
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onDownload(book._id)}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onBookmark(book._id)}
-        >
-          <Bookmark className="h-4 w-4" />
-        </Button>
+        {book.fileUrl && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${book.fileUrl}`, '_blank')}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

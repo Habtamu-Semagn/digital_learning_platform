@@ -35,7 +35,7 @@ const uploadVideo = async (req, res) => {
       description,
       language,
       category,
-      tags: tags ? tags.split(",") : [],
+      tags: Array.isArray(tags) ? tags : (tags ? tags.split(",").map(t => t.trim()) : []),
       //   videoId: videoData.uid,
       // videoUrl: videoData.playbackUrl,
       // thumbnail: videoData.thumbnail,
@@ -64,12 +64,19 @@ const getVideos = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const videos = await Video.find()
+
+    // Build query - if user is authenticated and requesting their own videos
+    let query = {};
+    if (req.user && req.query.uploadedBy === "me") {
+      query.uploadedBy = req.user.id;
+    }
+
+    const videos = await Video.find(query)
       .populate("uploadedBy", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    const total = await Video.countDocuments();
+    const total = await Video.countDocuments(query);
 
     res.status(200).json({
       videos,

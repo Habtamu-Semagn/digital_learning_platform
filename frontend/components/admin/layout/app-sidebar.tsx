@@ -60,11 +60,6 @@ const adminNavItems = [
     url: "/dashboard/admin/organizations",
   },
   {
-    title: "Billing & Payments",
-    button: <CreditCard />,
-    url: "/dashboard/admin/billing",
-  },
-  {
     title: "Reports",
     button: <BarChart3 />,
     url: "/dashboard/admin/analytics",

@@ -52,12 +52,12 @@ const instructorNavItems = [
   {
     title: "Announcements",
     button: <Megaphone />,
-    url: "/dashboard/instructor/communications",
+    url: "/dashboard/instructor/announcements",
   },
   {
     title: "Assignments",
     button: <ClipboardList />,
-    url: "/dashboard/instructor/grading",
+    url: "/dashboard/instructor/assignments",
   },
   {
     title: "Analytics",
@@ -67,7 +67,7 @@ const instructorNavItems = [
   {
     title: "Q&A",
     button: <MessageCircle />,
-    url: "/dashboard/instructor/questions",
+    url: "/dashboard/instructor/qa",
   },
   {
     title: "Settings",

@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "../../ui/separator";
 import {
-  BarChart3,
   BookOpen,
   GraduationCap,
   Home,
   Library,
   SettingsIcon,
+  FileText,
+  HelpCircle,
 } from "lucide-react";
 import {
   Select,
@@ -31,17 +32,22 @@ import {
 import Link from "next/link";
 
 const navItem = [
-  { title: "Home", button: <Home />, url: "/dashboard/student" },
-  { title: "Library", button: <Library />, url: "/dashboard/student/library" },
+  { title: "Dashboard", button: <Home />, url: "/dashboard/student" },
   {
     title: "My Courses",
     button: <BookOpen />,
     url: "/dashboard/student/courses",
   },
   {
-    title: "Progress",
-    button: <BarChart3 />,
-    url: "/dashboard/student/progress",
+    title: "Assignments",
+    button: <FileText />,
+    url: "/dashboard/student/assignments",
+  },
+  { title: "Library", button: <Library />, url: "/dashboard/student/library" },
+  {
+    title: "Q&A",
+    button: <HelpCircle />,
+    url: "/dashboard/student/qa",
   },
   {
     title: "Settings",
@@ -51,7 +57,7 @@ const navItem = [
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [isActive, setIsActive] = React.useState("Home");
+  const [isActive, setIsActive] = React.useState("Dashboard");
   return (
     <Sidebar {...props}>
       <SidebarHeader>

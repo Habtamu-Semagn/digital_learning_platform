@@ -8,17 +8,18 @@ const __dirname = path.dirname(__filename);
 
 const uploadBook = async (req, res) => {
   try {
-    const { title, description, author, language, tags } = req.body;
+    const { title, description, author, language, tags, category } = req.body;
     if (!req.file) {
-      res.status(400).message("Please upload a file");
+      return res.status(400).json({ message: "Please upload a file" });
     }
 
     const book = await Book.create({
       title,
       description,
-      author,
+      author: author || "", // Optional field
       language,
-      tags: tags ? tags.split(",") : [],
+      category: category || "General",
+      tags: Array.isArray(tags) ? tags : (tags ? tags.split(",").map(t => t.trim()) : []),
       filename: req.file.filename,
       fileUrl: `uploads/books/${req.file.filename}`,
       originalName: req.file.originalname,
@@ -37,13 +38,19 @@ const getBooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const books = await Book.find()
+    // Build query - if user is authenticated and requesting their own books
+    let query = {};
+    if (req.user && req.query.uploadedBy === "me") {
+      query.uploadedBy = req.user.id;
+    }
+
+    const books = await Book.find(query)
       .populate("uploadedBy", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Book.countDocuments();
+    const total = await Book.countDocuments(query);
 
     res.json({
       books,

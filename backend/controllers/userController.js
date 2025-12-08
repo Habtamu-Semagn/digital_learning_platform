@@ -9,12 +9,18 @@ const getUsers = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const users = await User.find()
+
+    const query = {};
+    if (req.query.role) {
+      query.role = req.query.role;
+    }
+
+    const users = await User.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await User.countDocuments();
+    const total = await User.countDocuments(query);
 
     res.json({
       users,
@@ -68,6 +74,15 @@ const getUser = async (req, res) => {
   }
 };
 
+const getUsersByRole = async (req, res) => {
+  try {
+    const role = req.params.role;
+    const users = await User.find({ role });
+    res.json({ status: "success", data: { users } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
 const updateUser = async (req, res) => {
   try {
     console.log("req ", req);
@@ -264,4 +279,4 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-export { getUsers, getUser, updateUser, deleteUser, updateUserRole };
+export { getUsers, getUser, getUsersByRole, updateUser, deleteUser, updateUserRole };
