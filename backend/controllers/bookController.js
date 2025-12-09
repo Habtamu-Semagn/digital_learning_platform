@@ -38,8 +38,33 @@ const getBooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Build query - if user is authenticated and requesting their own books
+    // Build query
     let query = {};
+
+    // If user is a student, only show books from instructors of courses they are enrolled in
+    // Unless filtering by specific parameters
+    if (req.user && req.user.role === 'user') { // 'user' is student role
+      const user = await req.user.populate({
+        path: 'enrolledCourses.course',
+        select: 'instructor'
+      });
+
+      const instructorIds = user.enrolledCourses
+        .map(enrollment => enrollment.course?.instructor)
+        .filter(id => id); // Filter out null/undefined
+
+      if (instructorIds.length > 0) {
+        query.uploadedBy = { $in: instructorIds };
+      } else {
+        // If no instructors/courses, showing no books might be safer or show general public books
+        // For now, let's show no books if not enrolled
+        // But wait, what about "General" books? 
+        // Requirement says: "must see the books attached by his instructors"
+        // Let's stick to that.
+        query.uploadedBy = { $in: [] };
+      }
+    }
+
     if (req.user && req.query.uploadedBy === "me") {
       query.uploadedBy = req.user.id;
     }

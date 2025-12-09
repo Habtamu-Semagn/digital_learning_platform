@@ -1,6 +1,6 @@
 // routes/auth.js
 import express from "express";
-import { signUp, login, protect } from "../controllers/authController.js";
+import { signUp, login, protect, updatePassword } from "../controllers/authController.js";
 
 const router = express.Router();
 
@@ -15,5 +15,7 @@ router.get("/me", protect, (req, res) => {
     data: { user: req.user },
   });
 });
+
+router.patch("/update-password", protect, updatePassword);
 
 export default router;

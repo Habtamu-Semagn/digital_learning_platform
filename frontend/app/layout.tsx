@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "./context/auth-context";
 
 export default function RootLayout({
   children,
@@ -16,8 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        <Toaster />
+        <AuthProvider>
+
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

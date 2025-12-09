@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AuthAPI } from "@/lib/api";
+import { useAuth } from "@/app/context/auth-context";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -29,6 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,18 +46,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await AuthAPI.login(data.email, data.password);
-
-      // Save token
-      // Note: In a real app, you might want to use cookies or a more secure storage method
-      // but for this refactor we are sticking to the existing pattern.
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-        // Redirect based on role could be implemented here
-        router.push("/dashboard/superadmin/all-users");
-      } else {
-        setError("Login failed: No token received");
-      }
+      await login(data.email, data.password)
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/app/context/auth-context";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +16,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { User, Bell, Lock, Loader2 } from "lucide-react";
+import { User, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AuthAPI } from "@/lib/api";
 
 export default function StudentSettingsPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
 
@@ -29,13 +32,6 @@ export default function StudentSettingsPage() {
     bio: "",
   });
 
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    assignmentReminders: true,
-    courseUpdates: true,
-    qaResponses: true,
-  });
-
   // Password change
   const [passwords, setPasswords] = useState({
     current: "",
@@ -44,13 +40,15 @@ export default function StudentSettingsPage() {
   });
 
   useEffect(() => {
-    // In a real app, fetch user data here
-    setProfile({
-      name: "Student Name",
-      email: "student@example.com",
-      bio: "Learning enthusiast",
-    });
-  }, []);
+    // Load user data from auth context
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        bio: "", // Bio would come from user profile if available
+      });
+    }
+  }, [user]);
 
   const handleProfileUpdate = async () => {
     try {
@@ -60,19 +58,6 @@ export default function StudentSettingsPage() {
       toast.success("Profile updated successfully!");
     } catch (error) {
       toast.error("Failed to update profile");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNotificationUpdate = async () => {
-    try {
-      setLoading(true);
-      // API call would go here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success("Notification preferences updated!");
-    } catch (error) {
-      toast.error("Failed to update preferences");
     } finally {
       setLoading(false);
     }
@@ -96,13 +81,16 @@ export default function StudentSettingsPage() {
 
     try {
       setLoading(true);
-      // API call would go here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await AuthAPI.updatePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm,
+      });
       toast.success("Password changed successfully!");
       setPasswordDialogOpen(false);
       setPasswords({ current: "", new: "", confirm: "" });
-    } catch (error) {
-      toast.error("Failed to change password");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to change password");
     } finally {
       setLoading(false);
     }
@@ -160,69 +148,6 @@ export default function StudentSettingsPage() {
           <Button onClick={handleProfileUpdate} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Save Changes
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            <CardTitle>Notifications</CardTitle>
-          </div>
-          <CardDescription>
-            Choose what notifications you want to receive
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Assignment Reminders</Label>
-              <p className="text-sm text-muted-foreground">
-                Get reminded about upcoming assignment deadlines
-              </p>
-            </div>
-            <Switch
-              checked={notifications.assignmentReminders}
-              onCheckedChange={(checked) =>
-                setNotifications({ ...notifications, assignmentReminders: checked })
-              }
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Course Updates</Label>
-              <p className="text-sm text-muted-foreground">
-                Notifications about new lessons and announcements
-              </p>
-            </div>
-            <Switch
-              checked={notifications.courseUpdates}
-              onCheckedChange={(checked) =>
-                setNotifications({ ...notifications, courseUpdates: checked })
-              }
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Q&A Responses</Label>
-              <p className="text-sm text-muted-foreground">
-                Get notified when someone answers your questions
-              </p>
-            </div>
-            <Switch
-              checked={notifications.qaResponses}
-              onCheckedChange={(checked) =>
-                setNotifications({ ...notifications, qaResponses: checked })
-              }
-            />
-          </div>
-          <Button onClick={handleNotificationUpdate} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            Save Preferences
           </Button>
         </CardContent>
       </Card>

@@ -12,7 +12,8 @@ export const getMyAssignments = async (req, res) => {
 
         const query = { course: { $in: enrolledCourseIds } };
         if (courseId) query.course = courseId;
-        if (status !== 'all') query.status = 'published';
+        // Always force published status for students, unless specific logic dictates otherwise
+        query.status = 'published';
 
         const assignments = await Assignment.find(query)
             .populate('course', 'title')

@@ -14,6 +14,27 @@ export const getAnnouncements = async (req, res) => {
             filter.instructor = instructor;
         } else if (req.user && req.user.role === "instructor") {
             filter.instructor = req.user.id;
+        } else if (req.user && req.user.role === "user") {
+            // For students, filter by enrolled courses
+            const user = await req.user.populate('enrolledCourses.course');
+            const courseIds = user.enrolledCourses.map(e => e.course._id);
+
+            if (course) {
+                // If specific course requested, ensure they are enrolled
+                if (courseIds.some(id => id.toString() === course)) {
+                    filter.course = course;
+                } else {
+                    // Not enrolled in requested course, return empty
+                    return res.status(200).json({
+                        status: "success",
+                        results: 0,
+                        data: { announcements: [] }
+                    });
+                }
+            } else {
+                // Show announcements from all enrolled courses
+                filter.course = { $in: courseIds };
+            }
         }
 
         const announcements = await Announcement.find(filter)

@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, CheckCircle2, Circle, Loader2, PlayCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Circle, Loader2, PlayCircle, Star } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 export default function CourseDetailPage() {
@@ -34,6 +36,23 @@ export default function CourseDetailPage() {
       router.push("/dashboard/student/courses");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [rating, setRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+
+  const handleSubmitRating = async () => {
+    try {
+      setSubmittingRating(true);
+      await StudentAPI.rateCourse(courseId, { rating, comment: reviewComment });
+      toast.success("Review submitted successfully!");
+      fetchCourseDetail(); // Refresh to see updated rating if displayed (future task)
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit review");
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -210,16 +229,38 @@ export default function CourseDetailPage() {
                   <p className="text-sm text-muted-foreground">{course.instructor.email}</p>
                 )}
               </div>
+
+              <Separator />
               <div>
-                <h3 className="font-semibold mb-2">Enrolled</h3>
-                <p className="text-sm text-muted-foreground">
-                  {course.enrolledAt ? new Date(course.enrolledAt).toLocaleDateString() : 'N/A'}
-                </p>
+                <h3 className="font-semibold mb-4">Rate this Course</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`p-1 hover:scale-110 transition-transform ${star <= rating ? "text-yellow-500" : "text-gray-300"
+                          }`}
+                      >
+                        <Star className="h-6 w-6 fill-current" />
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea
+                    placeholder="Write a review..."
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                  />
+                  <Button onClick={handleSubmitRating} disabled={submittingRating || rating === 0}>
+                    {submittingRating ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+      </Tabs >
+    </div >
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storage } from "./storage";
 
 // --- Types ---
 
@@ -126,10 +127,7 @@ async function fetchClient<T>(
   options: RequestInit = {}
 ): Promise<T> {
   // Dynamic Token Retrieval
-  // const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  // HARDCODED TOKEN FOR DEVELOPMENT (Bypassing Frontend Auth)
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmQ3ZDI5MzdmODE2OTU0Y2Q5MGIxOCIsImlhdCI6MTc2NDU4ODg0MSwiZXhwIjoxNzY1MTkzNjQxfQ.wcrE1Pesjuz0gihdIGPdeSz7JmAHMkqLFZEwyhmMyww";
+  const token = typeof window !== 'undefined' ? storage.getToken() : null;
 
   const config = {
     ...options,
@@ -173,9 +171,36 @@ async function fetchClient<T>(
 
 export const AuthAPI = {
   login: async (email: string, password: string) => {
-    return fetchClient<{ token: string; user: User }>(`/auth/login`, {
+    return fetchClient<{ token: string; data: { user: User } }>(`/auth/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    });
+  },
+
+  signup: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    passwordConfirm: string;
+    role: 'student' | 'instructor';
+    institution?: string;
+  }) => {
+    return fetchClient<{ token: string; data: { user: User } }>(`/auth/signup`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getCurrentUser: async () => {
+    return fetchClient<{ status: string; data: { user: User } }>(`/auth/me`, {
+      method: "GET",
+    }).then(res => res.data.user);
+  },
+
+  updatePassword: async (data: any) => {
+    return fetchClient<{ status: string; message: string }>(`/auth/update-password`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
     });
   },
 };
@@ -311,7 +336,7 @@ export const SuperAdminAPI = {
     if (format === "csv") {
       // Special handling for CSV download
       // HARDCODED TOKEN FOR DEVELOPMENT (Bypassing Frontend Auth)
-      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmQ3ZDI5MzdmODE2OTU0Y2Q5MGIxOCIsImlhdCI6MTc2NDU4ODg0MSwiZXhwIjoxNzY1MTkzNjQxfQ.wcrE1Pesjuz0gihdIGPdeSz7JmAHMkqLFZEwyhmMyww";
+      const token = storage.getToken();
       const response = await fetch(`${API_BASE}/analytics/export?${query.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -527,7 +552,7 @@ export const InstructorAPI = {
   },
 
   uploadVideo: async (formData: FormData) => {
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmQ3ZDI5MzdmODE2OTU0Y2Q5MGIxOCIsImlhdCI6MTc2NDU4ODg0MSwiZXhwIjoxNzY1MTkzNjQxfQ.wcrE1Pesjuz0gihdIGPdeSz7JmAHMkqLFZEwyhmMyww";
+    const token = storage.getToken();
 
     const response = await fetch(`${API_BASE}/videos/upload`, {
       method: "POST",
@@ -572,7 +597,7 @@ export const InstructorAPI = {
   },
 
   uploadBook: async (formData: FormData) => {
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmQ3ZDI5MzdmODE2OTU0Y2Q5MGIxOCIsImlhdCI6MTc2NDU4ODg0MSwiZXhwIjoxNzY1MTkzNjQxfQ.wcrE1Pesjuz0gihdIGPdeSz7JmAHMkqLFZEwyhmMyww";
+    const token = storage.getToken();
 
     const response = await fetch(`${API_BASE}/books/upload`, {
       method: "POST",
@@ -605,6 +630,12 @@ export const InstructorAPI = {
     // For now, use the general analytics endpoint
     // In production, this should be instructor-specific
     return fetchClient<any>(`/analytics/overview?${query.toString()}`, {
+      method: "GET",
+    });
+  },
+
+  getInstructorStats: async () => {
+    return fetchClient<{ totalStudents: number; totalVideoViews: number; totalBookViews: number; totalWatchTime: number; averageCourseRating: number }>("/analytics/instructor", {
       method: "GET",
     });
   },
@@ -845,6 +876,13 @@ export const InstructorAPI = {
       body: JSON.stringify(data),
     });
   },
+
+  getStudents: async (courseId?: string) => {
+    const query = courseId ? `?courseId=${courseId}` : '';
+    return fetchClient<{ status: string; results: number; users: any[] }>(`/courses/my-students${query}`, {
+      method: "GET",
+    }).then(res => res.users || []); // Returning users array directly
+  },
 }
 
 // Student API
@@ -910,7 +948,20 @@ export const StudentAPI = {
       .then(res => res.data.assignment);
   },
 
-  submitAssignment: async (assignmentId: string, data: { content: string; attachments?: any[] }) => {
+  getAnnouncements: async () => {
+    return fetchClient<{ status: string; data: { announcements: any[] } }>('/announcements', {
+      method: 'GET',
+    }).then(res => res.data.announcements);
+  },
+
+  rateCourse: async (courseId: string, data: { rating: number; comment: string }) => {
+    return fetchClient<{ status: string; data: { course: any } }>(`/courses/${courseId}/rate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  submitAssignment: async (assignmentId: string, data: { content: string; attachments: string[] }) => {
     return fetchClient<{ status: string; message: string }>(`/students/assignments/${assignmentId}/submit`, {
       method: 'POST',
       body: JSON.stringify(data)
@@ -921,18 +972,18 @@ export const StudentAPI = {
     return fetchClient<{ status: string; data: { submission: any } }>(`/students/assignments/${assignmentId}/submission`)
       .then(res => res.data.submission);
   },
-  
+
   // Books/Library
   getAllBooks: async (page = 1, limit = 50) => {
     return fetchClient<{ books: any[]; total: number; pages: number }>(`/books?page=${page}&limit=${limit}`)
       .then(res => ({ books: res.books || [], total: res.total || 0, pages: res.pages || 1 }));
   },
-  
+
   searchBooks: async (query: string, page = 1, limit = 50) => {
     return fetchClient<any[]>(`/books/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`)
       .then(res => Array.isArray(res) ? res : []);
   },
-  
+
   getBook: async (bookId: string) => {
     return fetchClient<any>(`/books/${bookId}`);
   },

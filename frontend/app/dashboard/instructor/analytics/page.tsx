@@ -33,6 +33,13 @@ export default function InstructorAnalyticsPage() {
     const [courses, setCourses] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [books, setBooks] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>({
+        totalStudents: 0,
+        totalVideoViews: 0,
+        totalBookViews: 0,
+        totalWatchTime: 0,
+        averageCourseRating: 0
+    });
 
     useEffect(() => {
         fetchData();
@@ -41,15 +48,19 @@ export default function InstructorAnalyticsPage() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [coursesData, videosData, booksData] = await Promise.all([
+            const [coursesData, videosData, booksData, statsData] = await Promise.all([
                 InstructorAPI.getMyCourses(),
                 InstructorAPI.getMyVideos(),
                 InstructorAPI.getMyBooks(),
+                InstructorAPI.getInstructorStats(),
             ]);
 
             setCourses(coursesData || []);
             setVideos(videosData || []);
             setBooks(booksData || []);
+            if (statsData) {
+                setStats(statsData);
+            }
         } catch (error) {
             console.error("Failed to fetch analytics:", error);
             toast.error("Failed to load analytics data");
@@ -58,23 +69,8 @@ export default function InstructorAnalyticsPage() {
         }
     };
 
-    // Calculate metrics
-    const totalStudents = courses.reduce(
-        (sum, course) => sum + (course.enrolledStudents || 0),
-        0
-    );
-    const totalVideoViews = videos.reduce(
-        (sum, video) => sum + (video.views || 0),
-        0
-    );
-    const totalBookViews = books.reduce(
-        (sum, book) => sum + (book.viewCount || 0),
-        0
-    );
-    const totalWatchTime = videos.reduce(
-        (sum, video) => sum + (video.totalWatchTime || 0),
-        0
-    );
+    // Metrics are now from stats state
+    const { totalStudents, totalVideoViews, totalBookViews, totalWatchTime } = stats;
 
     const formatWatchTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
@@ -176,10 +172,10 @@ export default function InstructorAnalyticsPage() {
                                             <TableCell>
                                                 <span
                                                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${course.status === "published"
-                                                            ? "bg-green-100 text-green-800"
-                                                            : course.status === "draft"
-                                                                ? "bg-yellow-100 text-yellow-800"
-                                                                : "bg-gray-100 text-gray-800"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : course.status === "draft"
+                                                            ? "bg-yellow-100 text-yellow-800"
+                                                            : "bg-gray-100 text-gray-800"
                                                         }`}
                                                 >
                                                     {course.status}

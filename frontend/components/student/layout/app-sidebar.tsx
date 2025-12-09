@@ -22,6 +22,7 @@ import {
   SettingsIcon,
   FileText,
   HelpCircle,
+  Megaphone,
 } from "lucide-react";
 import {
   Select,
@@ -42,6 +43,11 @@ const navItem = [
     title: "Assignments",
     button: <FileText />,
     url: "/dashboard/student/assignments",
+  },
+  {
+    title: "Announcements",
+    button: <Megaphone />,
+    url: "/dashboard/student/announcements",
   },
   { title: "Library", button: <Library />, url: "/dashboard/student/library" },
   {

@@ -265,10 +265,62 @@ const convertToCSV = (data) => {
   return [headers, ...rows].map((row) => row.join(",")).join("\n");
 };
 
+// Instructor Stats
+const getInstructorStats = async (req, res) => {
+  try {
+    const instructorId = req.user.id;
+
+    // 1. Total Students (Unique enrollments)
+    const courses = await import("../models/Course.js").then(m => m.default.find({ instructor: instructorId }).select('_id averageRating'));
+    const courseIds = courses.map(c => c._id);
+
+    const uniqueStudents = await User.countDocuments({
+      'enrolledCourses.course': { $in: courseIds }
+    });
+
+    // 2. Video Stats
+    const videoStats = await Video.aggregate([
+      { $match: { uploadedBy: new mongoose.Types.ObjectId(instructorId) } },
+      {
+        $group: {
+          _id: null,
+          totalViews: { $sum: "$views" },
+          totalWatchTime: { $sum: "$totalWatchTime" }
+        }
+      }
+    ]);
+
+    // 3. Book Stats
+    const bookStats = await Book.aggregate([
+      { $match: { uploadedBy: new mongoose.Types.ObjectId(instructorId) } },
+      {
+        $group: {
+          _id: null,
+          totalViews: { $sum: "$viewCount" }
+        }
+      }
+    ]);
+
+    // 4. Course Performance (Average Rating)
+    const avgRating = courses.reduce((acc, curr) => acc + (curr.averageRating || 0), 0) / (courses.length || 1);
+
+    res.json({
+      totalStudents: uniqueStudents,
+      totalVideoViews: videoStats[0]?.totalViews || 0,
+      totalBookViews: bookStats[0]?.totalViews || 0,
+      totalWatchTime: videoStats[0]?.totalWatchTime || 0,
+      averageCourseRating: parseFloat(avgRating.toFixed(1))
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   trackEvent,
   getOverview,
   getInstitutionAnalytics,
   getUserAnalytics,
   exportAnalytics,
+  getInstructorStats,
 };

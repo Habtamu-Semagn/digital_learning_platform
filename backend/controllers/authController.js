@@ -214,3 +214,46 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+export const updatePassword = async (req, res) => {
+  try {
+    // 1) Get user from collection
+    const user = await User.findById(req.user.id).select('+password');
+
+    // 2) Check if POSTed current password is correct
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!(await user.correctPassword(currentPassword, user.password))) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Your current password is wrong',
+      });
+    }
+
+    // 3) Validate new password match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'New passwords do not match',
+      });
+    }
+
+    // 4) Update password
+    user.password = newPassword;
+    user.passwordConfirm = confirmPassword;
+    await user.save();
+
+    // 5) Log user in, send JWT
+    const token = signToken(user._id);
+
+    res.status(200).json({
+      status: 'success',
+      token, // Send new token if desired, or client can keep using old one if not invalidated
+      message: 'Password updated successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+    });
+  }
+};

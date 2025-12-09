@@ -38,19 +38,18 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCourses();
-  }, [activeTab]);
+    fetchAllCourses();
+  }, []);
 
-  const fetchCourses = async () => {
+  const fetchAllCourses = async () => {
     try {
       setLoading(true);
-      if (activeTab === "enrolled") {
-        const courses = await StudentAPI.getEnrolledCourses();
-        setEnrolledCourses(courses || []);
-      } else {
-        const courses = await StudentAPI.getAvailableCourses();
-        setAvailableCourses(courses || []);
-      }
+      const [enrolled, available] = await Promise.all([
+        StudentAPI.getEnrolledCourses(),
+        StudentAPI.getAvailableCourses()
+      ]);
+      setEnrolledCourses(enrolled || []);
+      setAvailableCourses(available || []);
     } catch (error) {
       console.error("Failed to fetch courses:", error);
       toast.error("Failed to load courses");
@@ -63,7 +62,7 @@ export default function MyCoursesPage() {
     try {
       await StudentAPI.enrollInCourse(courseId);
       toast.success("Successfully enrolled in course!");
-      fetchCourses();
+      fetchAllCourses();
     } catch (error: any) {
       toast.error(error.message || "Failed to enroll in course");
     }
@@ -73,7 +72,7 @@ export default function MyCoursesPage() {
     try {
       await StudentAPI.unenrollFromCourse(courseId);
       toast.success("Successfully unenrolled from course");
-      fetchCourses();
+      fetchAllCourses();
     } catch (error: any) {
       toast.error(error.message || "Failed to unenroll from course");
     }

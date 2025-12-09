@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { StatsCard } from "@/components/admin/stats-card";
 import { InstructorAPI } from "@/lib/api";
+
+// Cache bust log
+console.log("InstructorDashboard file evaluated");
 import { CourseCard } from "@/components/instructor/course-card";
 import { ContentUploadModal } from "@/components/instructor/content-upload-modal";
 import { Button } from "@/components/ui/button";
@@ -24,6 +27,7 @@ export default function InstructorDashboard() {
   const [courses, setCourses] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [books, setBooks] = useState<any[]>([]);
+  const [totalUniqueStudents, setTotalUniqueStudents] = useState(0);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<"video" | "book">("video");
 
@@ -34,15 +38,20 @@ export default function InstructorDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [coursesData, videosData, booksData] = await Promise.all([
+      const [coursesData, videosData, booksData, statsData] = await Promise.all([
         InstructorAPI.getMyCourses(),
         InstructorAPI.getMyVideos(),
         InstructorAPI.getMyBooks(),
+        InstructorAPI.getInstructorStats(),
       ]);
 
       setCourses(coursesData || []);
       setVideos(videosData || []);
       setBooks(booksData || []);
+      // We will access statsData in render or store it. 
+      // Current implementation calculates totalStudents from courses which is wrong.
+      // Let's store totalUniqueStudents.
+      setTotalUniqueStudents(statsData?.totalStudents || 0);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
       toast.error("Failed to load dashboard data");
@@ -61,10 +70,6 @@ export default function InstructorDashboard() {
   };
 
   // Calculate metrics
-  const totalStudents = courses.reduce(
-    (sum, course) => sum + (course.enrolledStudents || 0),
-    0
-  );
   const avgRating =
     courses.length > 0
       ? courses.reduce((sum, course) => sum + (course.averageRating || 0), 0) /
@@ -121,7 +126,7 @@ export default function InstructorDashboard() {
         />
         <StatsCard
           title="Total Students"
-          value={totalStudents}
+          value={totalUniqueStudents}
           icon={Users}
           description="Across all courses"
         />

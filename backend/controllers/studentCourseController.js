@@ -102,6 +102,9 @@ export const enrollInCourse = async (req, res) => {
 
         await user.save();
 
+        // Increment enrolled students count
+        await Course.findByIdAndUpdate(courseId, { $inc: { enrolledStudents: 1 } });
+
         res.status(200).json({
             status: 'success',
             message: 'Successfully enrolled in course',
@@ -128,6 +131,9 @@ export const unenrollFromCourse = async (req, res) => {
         );
 
         await user.save();
+
+        // Decrement enrolled students count
+        await Course.findByIdAndUpdate(courseId, { $inc: { enrolledStudents: -1 } });
 
         res.status(200).json({
             status: 'success',

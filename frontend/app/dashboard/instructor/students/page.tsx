@@ -83,15 +83,21 @@ export default function StudentsPage() {
     }, []);
 
     useEffect(() => {
+        fetchData();
+    }, [courseFilter]);
+
+    useEffect(() => {
         filterStudents();
-    }, [students, searchQuery, courseFilter]);
+    }, [students, searchQuery]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            // Fetch students (users with role 'user')
-            const usersData = await AdminAPI.getUsers(1, 100);
-            setStudents(usersData.users || []);
+            // Fetch students enrolled in instructor's courses
+            // If filtering by course (and not 'all'), pass the course ID
+            const activeCourseFilter = courseFilter !== 'all' ? courseFilter : undefined;
+            const usersData = await InstructorAPI.getStudents(activeCourseFilter);
+            setStudents(usersData || []);
 
             // Fetch instructor's courses
             const coursesData = await InstructorAPI.getMyCourses();
@@ -119,10 +125,6 @@ export default function StudentsPage() {
                     student.email?.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
-
-        // Filter by course (this would require enrollment data from backend)
-        // For now, we'll show all students
-        // TODO: Implement course enrollment filtering when backend supports it
 
         setFilteredStudents(filtered);
     };

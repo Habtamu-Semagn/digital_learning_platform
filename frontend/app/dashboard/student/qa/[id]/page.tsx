@@ -68,7 +68,7 @@ export default function QuestionDetailPage() {
 
         try {
             setSubmitting(true);
-            await InstructorAPI.addAnswer(questionId, { content: answerContent });
+            await InstructorAPI.addAnswer(questionId, answerContent);
             toast.success("Answer submitted successfully!");
             setAnswerContent("");
             fetchQuestion();
@@ -135,7 +135,7 @@ export default function QuestionDetailPage() {
                     <div className="flex items-center gap-4 pt-2">
                         <Button variant="outline" size="sm" onClick={handleUpvoteQuestion}>
                             <ThumbsUp className="h-4 w-4 mr-2" />
-                            Upvote ({question.upvotes || 0})
+                            Upvote ({question.upvotes?.length || 0})
                         </Button>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <MessageSquare className="h-4 w-4" />
@@ -166,7 +166,7 @@ export default function QuestionDetailPage() {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="font-medium">{answer.answeredBy?.name || 'Student'}</span>
                                                 <span className="text-sm text-muted-foreground">
-                                                    • {new Date(answer.answeredAt).toLocaleDateString()}
+                                                    • {new Date(answer.createdAt).toLocaleDateString()}
                                                 </span>
                                                 {answer.isAccepted && (
                                                     <Badge className="bg-green-500">
@@ -179,7 +179,7 @@ export default function QuestionDetailPage() {
                                             <div className="mt-3">
                                                 <Button variant="ghost" size="sm" onClick={() => handleUpvoteAnswer(answer._id)}>
                                                     <ThumbsUp className="h-4 w-4 mr-2" />
-                                                    Upvote ({answer.upvotes || 0})
+                                                    Upvote ({answer.upvotes?.length || 0})
                                                 </Button>
                                             </div>
                                         </div>
